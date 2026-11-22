@@ -203,7 +203,9 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .anillo-nota { font-size: 12.5px; color: var(--muted); max-width: 260px; }
 
 /* Gráfica */
-.graf-herr { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.graf-herr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 8px; }
+.graf-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin-right: auto; }
+.graf-cab .leyenda { margin: 0; }
 .herr-der { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .zoom { display: inline-flex; gap: 6px; }
 .icono-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text-2); cursor: pointer; -webkit-tap-highlight-color: transparent; transition-property: scale, background-color, color; transition-duration: 150ms; transition-timing-function: ease-out; }
@@ -226,8 +228,8 @@ path.linea.fina { stroke-width: 1; opacity: 0.35; filter: none; }
 .globo { position: absolute; z-index: 2; pointer-events: none; padding: 9px 12px; border-radius: 12px; background: var(--surface); box-shadow: var(--sombra-hi); border: 1px solid transparent; font-size: 13px; white-space: nowrap; color: var(--text-2); opacity: 0; transition: opacity 120ms ease-out; }
 .globo b { color: var(--text); font-variant-numeric: tabular-nums; }
 .globo i { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; }
-.mini { margin-top: 10px; }
-.mini svg { display: block; width: 100%; height: 54px; touch-action: none; cursor: pointer; border-radius: 10px; }
+.mini { margin-top: 6px; }
+.mini svg { display: block; width: 100%; height: 44px; touch-action: none; cursor: pointer; border-radius: 10px; }
 .mini .fondo-mini { fill: var(--surface-2); }
 .mini .fuera { fill: var(--surface); opacity: 0.6; }
 .mini .ventana { fill: none; stroke: var(--brand); stroke-width: 1.5; cursor: grab; }
@@ -446,10 +448,11 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
         <div class="a-kpis" id="kpis"></div>
 
         <div class="card a-graf revela">
-          <div class="card-cab">
-            <div><h3><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 6-6"/></svg>Curvas de la prueba</h3><p class="ayuda">Línea fuerte: medida filtrada. Pasa el dedo o el puntero para leer valores.</p></div>
-          </div>
           <div class="graf-herr">
+            <div class="graf-cab">
+              <h3><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 6-6"/></svg>Curvas de la prueba</h3>
+              <div class="leyenda"><span style="--c:var(--entrada)">Entrada</span><span style="--c:var(--salida)">Salida (MT3608)</span></div>
+            </div>
             <div class="seg" id="magnitud" role="group" aria-label="Magnitud"></div>
             <div class="herr-der">
               <label class="interruptor"><input type="checkbox" id="crudo">Sin filtrar</label>
@@ -460,10 +463,9 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
               </div>
             </div>
           </div>
-          <div class="leyenda"><span style="--c:var(--entrada)">Entrada</span><span style="--c:var(--salida)">Salida (MT3608)</span></div>
           <div class="lienzo" id="lienzo"><svg id="svg" height="380" role="group" tabindex="0" aria-roledescription="gráfica" aria-label="Gráfica de la prueba seleccionada"></svg><div class="globo" id="globo"></div></div>
           <div class="mini"><svg id="mini" role="slider" aria-label="Tramo visible de la prueba; arrastra para moverlo" tabindex="0"></svg></div>
-          <p class="nota">Filtro: mediana de 5 muestras (quita picos) y media móvil de 60 s (suaviza). Abajo: arrastra la ventana para moverte por la prueba o sus bordes para acercar. Con mouse también sirve Ctrl + rueda y doble clic para volver; con teclado, las flechas.</p>
+          <p class="nota">Línea fuerte: filtrada (mediana de 5 muestras + media de 60 s). Pasa el puntero para leer valores; recorre con la barra de abajo, Ctrl + rueda o las flechas; doble clic vuelve a toda la prueba.</p>
         </div>
 
         <div class="card a-flujo revela">
@@ -759,7 +761,10 @@ function tramos(h, y, X, Y, hueco, desde, hasta) {
 }
 function dibujar() {
   const p = D[sel], s = p.series, [a, b, u, dec] = MAG[graf.mag], crudo = $("#crudo").checked && a !== "E", h = s.h;
-  const W = svg.clientWidth || 600, H = W < 560 ? 300 : 380, iw = W - M.l - M.r, ih = H - M.t - M.b;
+  // Alto según la pantalla: la tarjeta completa cabe sin tener que subir y bajar.
+  const W = svg.clientWidth || 600, resto = svg.closest(".card").offsetHeight - +svg.getAttribute("height");  // alto del atributo: el giro 3D de entrada no lo deforma
+  const libre = innerHeight - $(".nav").offsetHeight - resto - 28;
+  const H = Math.round(Math.max(W < 560 ? 220 : 240, Math.min(W < 560 ? 320 : 440, libre))), iw = W - M.l - M.r, ih = H - M.t - M.b;
   svg.setAttribute("height", H);
   graf.vista = graf.vista || total();
   const [v0, v1] = graf.vista;
@@ -813,7 +818,7 @@ function dibujar() {
   dibujarMini();
 }
 function dibujarMini() {
-  const p = D[sel], s = p.series, h = s.h, y = s[MAG[graf.mag][0]], W = mini.clientWidth || 600, H = 54, [a, b] = total(), [v0, v1] = graf.vista;
+  const p = D[sel], s = p.series, h = s.h, y = s[MAG[graf.mag][0]], W = mini.clientWidth || 600, H = 44, [a, b] = total(), [v0, v1] = graf.vista;
   const ys = y.filter(v => v != null), lo = Math.min(...ys), hi = Math.max(...ys);
   const X = v => (v - a) / (b - a) * W, Y = v => H - 6 - (hi - lo ? (v - lo) / (hi - lo) : 0.5) * (H - 12);
   mini.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -975,8 +980,8 @@ if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
 segmento($("#filtro"), opcionesFuente(), filtro, v => { filtro = v; lista(); });
 segmento($("#filtro-c"), opcionesFuente(), filtroC, v => { filtroC = v; comparar(); });
 portada(); lista(); detalle(); comparar(); marcarTema();
-let tAncho, ancho = innerWidth;
-addEventListener("resize", () => { clearTimeout(tAncho); tAncho = setTimeout(() => { if (innerWidth !== ancho) { ancho = innerWidth; dibujar(); flujo(); dispersion(); } }, 150); });
+let tAncho, ancho = innerWidth, alto = innerHeight;
+addEventListener("resize", () => { clearTimeout(tAncho); tAncho = setTimeout(() => { if (innerWidth !== ancho || Math.abs(innerHeight - alto) > 40) { ancho = innerWidth; alto = innerHeight; dibujar(); flujo(); dispersion(); } }, 150); });
 alTema.push(() => { dibujar(); flujo(); dispersion(); });
 </script>
 </body>
