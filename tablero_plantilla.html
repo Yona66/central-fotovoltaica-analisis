@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central fotovoltaica</title>
+<style>
+:root {
+  --azul: #1f5fa8; --azul-osc: #0d2b52; --tinta: #0f172a; --texto: #334155; --gris: #64748b; --linea: #e8edf3;
+  --fondo: #f4f6fa; --tarjeta: #fff; --entrada: #1f5fa8; --salida: #d97706;
+  --paneles: #b45309; --bateria: #1f5fa8; --carga: #0f766e;
+  --ok: #15803d; --ok-f: #dcfce7; --med: #a16207; --med-f: #fef3c7; --mal: #b91c1c; --mal-f: #fee2e2;
+  /* Sombra en capas: profundidad sin bordes */
+  --sombra: 0 0 0 1px rgb(15 23 42 / 0.06), 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+.num, td.n, .kpi .v { font-variant-numeric: tabular-nums; }
+main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 60px; }
+h2 { font-size: 18px; color: var(--tinta); margin: 26px 0 10px; }
+.nota { font-size: 13px; color: var(--gris); margin: 8px 0 0; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.hero { position: relative; overflow: hidden; border-radius: 20px; padding: 28px 32px; color: #fff; border: 1px solid transparent;
+  background: linear-gradient(120deg, var(--azul-osc) 0%, var(--azul) 72%, #2f7bd1 100%); box-shadow: var(--sombra); }
+.hero::after { content: ""; position: absolute; right: -60px; top: -80px; width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgb(251 205 24 / 0.55) 0%, rgb(251 205 24 / 0) 68%); }
+.hero .eti { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .75; margin: 0; }
+.hero h1 { font-size: 30px; margin: 4px 0 6px; }
+.hero p { margin: 0; opacity: .85; max-width: 640px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; position: relative; z-index: 1; }
+.chips span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgb(255 255 255 / .14); font-size: 13px; font-weight: 600; }
+.chips svg.i { width: 14px; height: 14px; }
+
+.pestanas { display: flex; gap: 4px; border-bottom: 1px solid #dbe3ec; margin: 22px 0 18px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.pestanas button { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; padding: 10px 12px; font: inherit; font-weight: 600; color: var(--gris); cursor: pointer; white-space: nowrap;
+  transition-property: color, border-color; transition-duration: 150ms; transition-timing-function: ease-out; }
+.pestanas button[aria-selected="true"] { color: var(--azul); border-bottom-color: var(--azul); }
+.pestanas.sub button { font-weight: 500; }
+@media (hover: hover) { .pestanas button:hover { color: var(--tinta); } }
+
+.barra { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
+label.campo { display: grid; gap: 6px; font-size: 13px; color: var(--gris); flex: 1 1 360px; }
+select { font: inherit; color: var(--tinta); padding: 10px 12px; border-radius: 10px; border: 1px solid #c9d3df; background: #fff; }
+.fuente { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: var(--c); background: color-mix(in oklch, var(--c) 12%, white); }
+.fuente svg.i { width: 14px; height: 14px; }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.kpi { background: var(--tarjeta); border-radius: 16px; padding: 16px 18px; border: 1px solid transparent; box-shadow: var(--sombra); }
+.kpi .ico { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; margin-bottom: 10px;
+  color: var(--c, var(--azul)); background: color-mix(in oklch, var(--c, var(--azul)) 12%, white); }
+.kpi .et { font-size: 13px; color: var(--gris); }
+.kpi .v { font-size: 26px; font-weight: 700; color: var(--tinta); line-height: 1.2; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--gris); margin-left: 3px; }
+.kpi .pie { font-size: 12px; color: var(--gris); margin-top: 2px; }
+
+.tarjeta { background: var(--tarjeta); border-radius: 16px; padding: 18px; border: 1px solid transparent; box-shadow: var(--sombra); }
+.controles { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
+.segmento { display: inline-flex; padding: 3px; border-radius: 12px; background: #eef2f7; flex-wrap: wrap; }
+.segmento button { border: 0; background: none; font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 9px; color: var(--texto); cursor: pointer;
+  transition-property: background-color, color, scale; transition-duration: 150ms; transition-timing-function: ease-out; -webkit-tap-highlight-color: transparent; }
+.segmento button[aria-pressed="true"] { background: #fff; color: var(--azul); font-weight: 600; box-shadow: 0 1px 2px rgb(15 23 42 / .1); }
+.segmento button:active, .boton:active { scale: 0.96; }
+.interruptor { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.interruptor input { width: 18px; height: 18px; accent-color: var(--azul); }
+.leyenda { display: flex; gap: 16px; font-size: 13px; }
+.leyenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 6px; }
+
+.lienzo { position: relative; touch-action: pan-y; }
+.lienzo svg { display: block; width: 100%; user-select: none; cursor: crosshair; }
+.lienzo .eje text { font-size: 12px; fill: var(--gris); }
+.lienzo .eje line { stroke: var(--linea); }
+.lienzo .titulo { font-size: 13px; font-weight: 600; fill: var(--texto); }
+.globo { position: absolute; pointer-events: none; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 13px; white-space: nowrap;
+  box-shadow: 0 0 0 1px rgb(15 23 42 / .08), 0 6px 20px rgb(15 23 42 / .12); border: 1px solid transparent; opacity: 0; transition: opacity 120ms ease-out; }
+.globo b { color: var(--tinta); }
+.globo i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; color: var(--gris); font-size: 13px; padding: 10px 12px; border-bottom: 1px solid #dbe3ec; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--linea); color: var(--tinta); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.desliza { overflow-x: auto; }
+.error { display: inline-block; min-width: 72px; text-align: right; padding: 2px 10px; border-radius: 999px; font-weight: 600; }
+.error.ok { color: var(--ok); background: var(--ok-f); } .error.med { color: var(--med); background: var(--med-f); } .error.mal { color: var(--mal); background: var(--mal-f); }
+
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.barras { display: grid; gap: 8px; }
+.barras .f { display: grid; grid-template-columns: 44px 1fr 74px; align-items: center; gap: 10px; font-size: 13px; }
+.barras .f > span:first-child { color: var(--gris); text-align: right; }
+.barras .pista { height: 16px; border-radius: 0 5px 5px 0; }
+.barras .f > span:last-child { font-variant-numeric: tabular-nums; color: var(--tinta); }
+.boton { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 9px 16px; border-radius: 10px; border: 1px solid #c9d3df;
+  background: #fff; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer;
+  transition-property: scale, background-color; transition-duration: 150ms; transition-timing-function: ease-out; }
+@media (hover: hover) { .boton:hover { background: #f1f5f9; } .segmento button:hover { color: var(--azul); } }
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .entra > * { animation: entra 300ms ease-out both; }
+  .entra > :nth-child(2) { animation-delay: 100ms; } .entra > :nth-child(3) { animation-delay: 200ms; } .entra > :nth-child(4) { animation-delay: 300ms; }
+}
+@media (prefers-reduced-motion: reduce) { .entra > * { animation: aparece 300ms ease-out both; } * { transition: none !important; } }
+@keyframes entra { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }
+@keyframes aparece { from { opacity: 0; } }
+@media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dos { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { main { padding: 16px 16px 40px; } .hero { padding: 22px 20px; } .hero h1 { font-size: 24px; } .kpis { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="hero entra">
+    <p class="eti">Monitoreo · análisis en Python</p>
+    <h1>Central fotovoltaica</h1>
+    <p>Medidas reales de los sensores INA260: entrada (paneles o batería) y salida del elevador MT3608.</p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <nav class="pestanas" role="tablist">
+    <button role="tab" aria-selected="true" data-vista="una"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 6-6"/></svg>Una prueba</button>
+    <button role="tab" aria-selected="false" data-vista="todas"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>Todas las pruebas</button>
+  </nav>
+
+  <section id="una">
+    <div class="barra">
+      <label class="campo">Prueba<select id="prueba"></select></label>
+      <span id="fuente"></span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+
+    <nav class="pestanas sub" role="tablist">
+      <button role="tab" aria-selected="true" data-sub="graf">Gráficas</button>
+      <button role="tab" aria-selected="false" data-sub="comp">Teórico vs real</button>
+      <button role="tab" aria-selected="false" data-sub="est">Estadística</button>
+      <button role="tab" aria-selected="false" data-sub="cai">Caídas de tensión</button>
+    </nav>
+
+    <div data-panel="graf" class="tarjeta">
+      <div class="controles">
+        <div class="segmento" id="magnitud"></div>
+        <label class="interruptor"><input type="checkbox" id="crudo">Ver medida sin filtrar</label>
+      </div>
+      <div class="leyenda"><span style="--c:var(--entrada)">entrada</span><span style="--c:var(--salida)">salida</span></div>
+      <div class="lienzo" id="lienzo"><svg id="svg" height="420" role="img" aria-label="Gráfica de la prueba"></svg><div class="globo" id="globo"></div></div>
+      <p class="nota">Filtro: mediana de 5 muestras (quita picos) y media móvil de 60 s (suaviza). Pasa el puntero para leer valores;
+        Ctrl + rueda para acercar, arrastra para mover y doble clic para volver.</p>
+    </div>
+    <div data-panel="comp" class="tarjeta" hidden>
+      <div class="desliza"><table id="t-comp"></table></div>
+      <p class="nota">Error = |real − teórico| / |teórico| · 100. Verde menos de 1 %, ámbar menos de 5 %, rojo 5 % o más.
+        La eficiencia solo se calcula con la batería como fuente.</p>
+    </div>
+    <div data-panel="est" class="tarjeta" hidden>
+      <div class="desliza"><table id="t-est"></table></div>
+      <p class="nota">Desviación estándar con NumPy: cuanto más baja, más estable.</p>
+    </div>
+    <div data-panel="cai" class="tarjeta" hidden>
+      <p id="n-cai" style="margin:0 0 8px;font-weight:600;color:var(--tinta)"></p>
+      <div class="desliza"><table id="t-cai"></table></div>
+    </div>
+  </section>
+
+  <section id="todas" hidden>
+    <h2>Clasificación por fuente de energía</h2>
+    <div class="tarjeta desliza"><table id="t-todas"></table></div>
+    <div class="dos">
+      <div><h2>Energía que entró en cada prueba</h2><div class="tarjeta barras" id="b-energia"></div></div>
+      <div><h2>Cuánto de esa energía llegó a la salida</h2><div class="tarjeta barras" id="b-relacion"></div></div>
+    </div>
+    <button class="boton" id="csv"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Descargar resumen (CSV)</button>
+  </section>
+</main>
+
+<script>
+const D = __DATOS__;
+const $ = s => document.querySelector(s);
+const ICONO = {
+  paneles: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  bateria: '<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 11v2M10 11v2"/>',
+  carga: '<path d="M12 22v-5M9 8V2M15 8V2M18 8v4a6 6 0 0 1-12 0V8z"/>',
+  reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  filas: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  rayo: '<path d="M13 2 4 14h8l-1 8 9-12h-8z"/>',
+  pct: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+};
+const ico = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONO[n]}</svg>`;
+// Números con punto decimal y espacio de miles, igual que la presentación.
+const num = (x, d = 1) => x == null ? "—" : x.toFixed(d).replace(/^(-?\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, " "));
+const insignia = f => `<span class="fuente" style="--c:var(--${f})">${ico(f)}${f}</span>`;
+const MAG = { "Tensión": ["V", "Vs", "V", 3], "Corriente": ["I", "Is", "mA", 1], "Potencia": ["P", "Ps", "mW", 1], "Energía acumulada": ["E", "Es", "mWh", 1] };
+let actual = D[0], mag = "Tensión", vista = null;
+
+// --- Cabecera ---
+const cuenta = f => D.filter(p => p.fuente === f).length;
+$("#chips").innerHTML = `<span>${D.length} pruebas</span>` +
+  ["paneles", "bateria", "carga"].filter(cuenta).map(f => `<span>${ico(f)}${cuenta(f)} ${f}</span>`).join("");
+
+// --- Pestañas ---
+function pestanas(sel, attr, mostrar) {
+  document.querySelectorAll(sel).forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(sel).forEach(x => x.setAttribute("aria-selected", x === b));
+    mostrar(b.dataset[attr]);
+  }));
+}
+pestanas("[data-vista]", "vista", v => { $("#una").hidden = v !== "una"; $("#todas").hidden = v !== "todas"; if (v === "una") dibujar(); });
+pestanas("[data-sub]", "sub", v => { document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== v); if (v === "graf") dibujar(); });
+
+// --- Una prueba ---
+$("#prueba").innerHTML = D.map((p, i) => `<option value="${i}">P${p.n} · ${p.nombre}</option>`).join("");
+$("#prueba").addEventListener("change", e => { actual = D[e.target.value]; vista = null; prueba(); });
+$("#magnitud").innerHTML = Object.keys(MAG).map(m => `<button aria-pressed="${m === mag}">${m}</button>`).join("");
+$("#magnitud").addEventListener("click", e => {
+  if (e.target.tagName !== "BUTTON") return;
+  mag = e.target.textContent;
+  $("#magnitud").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === e.target));
+  dibujar();
+});
+$("#crudo").addEventListener("change", dibujar);
+
+const kpi = (i, et, v, u, pie, c) =>
+  `<div class="kpi"${c ? ` style="--c:${c}"` : ""}><div class="ico">${ico(i)}</div><div class="et">${et}</div>` +
+  `<div class="v">${v}<small>${u}</small></div><div class="pie">${pie}</div></div>`;
+
+function tabla(el, filas, cols) {
+  el.innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}">${c.t}</th>`).join("")}</tr></thead><tbody>` +
+    filas.map(f => `<tr>${cols.map(c => `<td class="${c.n ? "n" : ""}">${c.f ? c.f(f) : f[c.k] ?? "—"}</td>`).join("")}</tr>`).join("") + "</tbody>";
+}
+const err = v => `<span class="error ${v < 1 ? "ok" : v < 5 ? "med" : "mal"}">${num(v, 2)} %</span>`;
+
+function prueba() {
+  const p = actual, rel = 100 * p.e_sal / p.e_ent;
+  $("#fuente").innerHTML = insignia(p.fuente);
+  $("#kpis").innerHTML = [
+    kpi("reloj", "Duración", num(p.duracion, 2), "h", `${p.lecturas} lecturas`),
+    kpi("filas", "Filas válidas", p.validas, "", `${p.lecturas - p.validas} descartadas`),
+    kpi(p.fuente, "Energía de entrada", num(p.e_ent), "mWh", p.fuente, `var(--${p.fuente})`),
+    kpi("rayo", "Energía de salida", num(p.e_sal), "mWh", "MT3608 a 5 V", "var(--salida)"),
+    kpi("pct", "Salida / entrada", num(rel), "%", `se pierden ${num(p.e_ent - p.e_sal)} mWh`, "var(--carga)"),
+  ].join("");
+  tabla($("#t-comp"), p.comp, [
+    { t: "Magnitud", k: "Magnitud" }, { t: "Teórico", n: 1, f: r => num(r["Teórico"], 3) }, { t: "Real", n: 1, f: r => num(r.Real, 3) },
+    { t: "Unidad", k: "Unidad" }, { t: "Error", n: 1, f: r => err(r["Error (%)"]) }, { t: "Cómo se obtiene", k: "Cómo se obtiene" }]);
+  tabla($("#t-est"), p.est, [{ t: "Magnitud", k: "Magnitud" },
+    ...["Media", "Desv. estándar", "Mínimo", "Máximo"].map(k => ({ t: k, n: 1, f: r => num(r[k], 3) }))]);
+  $("#n-cai").textContent = p.n_caidas ? `${p.n_caidas} saltos bruscos de tensión en la salida` : "Ninguna caída brusca: la salida se mantuvo estable.";
+  $("#t-cai").hidden = !p.n_caidas;
+  tabla($("#t-cai"), p.caidas, [["t_s", "t (s)", 1], ["V_antes", "V antes", 3], ["V_despues", "V después", 3], ["dV", "ΔV", 3],
+    ["I_antes", "I antes (mA)", 1], ["I_despues", "I después (mA)", 1], ["R_ohm", "R = ΔV/ΔI (Ω)", 1]]
+    .map(([k, t, d]) => ({ t, n: 1, f: r => num(r[k], d) })));
+  dibujar();
+}
+
+// --- Gráfica de líneas propia: sin librerías, funciona sin internet ---
+const svg = $("#svg"), globo = $("#globo"), NS = "http://www.w3.org/2000/svg";
+const M = { l: 62, r: 16, t: 14, b: 42 };
+function marcas(a, b, n) {
+  const paso0 = (b - a) / n, p = 10 ** Math.floor(Math.log10(paso0)), r = paso0 / p;
+  const paso = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * p, out = [];
+  for (let v = Math.ceil(a / paso) * paso; v <= b + paso * 1e-9; v += paso) out.push(+v.toFixed(10));
+  return out;
+}
+function el(tag, attrs, padre = svg) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  padre.appendChild(e);
+  return e;
+}
+function dibujar() {
+  if ($("#una").hidden || svg.closest("[hidden]")) return;
+  const s = actual.series, [a, b, u, dec] = MAG[mag], crudo = $("#crudo").checked && a !== "E";
+  const h = s.h, W = svg.clientWidth, H = 420;
+  vista = vista || [h[0], h[h.length - 1]];
+  const capas = [];
+  if (crudo) capas.push({ y: s[a + "_crudo"], c: "var(--entrada)", o: .25, w: 1 }, { y: s[b + "_crudo"], c: "var(--salida)", o: .25, w: 1 });
+  capas.push({ y: s[a], c: "var(--entrada)", o: 1, w: 2.2, nombre: "entrada" }, { y: s[b], c: "var(--salida)", o: 1, w: 2.2, nombre: "salida" });
+  // Eje Y según lo visible y sin forzar el cero: si no, 3.9 V y 5.0 V se ven planas.
+  let lo = Infinity, hi = -Infinity;
+  capas.forEach(k => k.y.forEach((v, i) => { if (v != null && h[i] >= vista[0] && h[i] <= vista[1]) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  if (!isFinite(lo)) { lo = 0; hi = 1; }
+  const pad = (hi - lo) * .08 || Math.abs(hi) * .05 || 1; lo -= pad; hi += pad;
+  const X = v => M.l + (v - vista[0]) / (vista[1] - vista[0]) * (W - M.l - M.r);
+  const Y = v => M.t + (hi - v) / (hi - lo) * (H - M.t - M.b);
+  svg.innerHTML = "";
+  const eje = el("g", { class: "eje" });
+  marcas(lo, hi, 6).forEach(v => { el("line", { x1: M.l, x2: W - M.r, y1: Y(v), y2: Y(v) }, eje); el("text", { x: M.l - 8, y: Y(v) + 4, "text-anchor": "end" }, eje).textContent = num(v, Math.max(0, -Math.floor(Math.log10((hi - lo) / 6)))); });
+  marcas(vista[0], vista[1], Math.max(3, Math.floor(W / 90))).forEach(v => { el("line", { x1: X(v), x2: X(v), y1: M.t, y2: H - M.b }, eje); el("text", { x: X(v), y: H - M.b + 18, "text-anchor": "middle" }, eje).textContent = num(v, vista[1] - vista[0] < 1 ? 2 : 1); });
+  el("text", { x: (M.l + W - M.r) / 2, y: H - 6, "text-anchor": "middle", class: "titulo" }).textContent = "Tiempo (h)";
+  el("text", { transform: `translate(14 ${(M.t + H - M.b) / 2}) rotate(-90)`, "text-anchor": "middle", class: "titulo" }).textContent = `${mag} (${u})`;
+  const clip = el("clipPath", { id: "recorte" }); el("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b }, clip);
+  capas.forEach(k => {
+    let d = "", sube = true;
+    for (let i = 0; i < h.length; i++) {
+      const v = k.y[i];
+      if (v == null || (i && h[i] - h[i - 1] > actual.hueco)) { sube = true; if (v == null) continue; }
+      if (h[i] < vista[0] && h[i + 1] < vista[0] || h[i] > vista[1] && h[i - 1] > vista[1]) { sube = true; continue; }
+      d += (sube ? "M" : "L") + X(h[i]).toFixed(1) + " " + Y(v).toFixed(1); sube = false;
+    }
+    el("path", { d, fill: "none", stroke: k.c, "stroke-width": k.w, opacity: k.o, "clip-path": "url(#recorte)", "stroke-linejoin": "round" });
+  });
+  const guia = el("line", { y1: M.t, y2: H - M.b, stroke: "#94a3b8", "stroke-dasharray": "4 4", opacity: 0 });
+  const puntos = capas.filter(k => k.nombre).map(k => ({ ...k, p: el("circle", { r: 5, fill: k.c, stroke: "#fff", "stroke-width": 2, opacity: 0 }) }));
+  svg.onpointermove = e => {
+    const r = svg.getBoundingClientRect(), x = e.clientX - r.left;
+    if (arrastre) { const dh = (arrastre.x - x) / (W - M.l - M.r) * (vista[1] - vista[0]); mover(arrastre.v[0] + dh - vista[0]); return; }
+    const t = vista[0] + (x - M.l) / (W - M.l - M.r) * (vista[1] - vista[0]);
+    let i = h.findIndex(v => v >= t); if (i < 0) i = h.length - 1; if (i > 0 && t - h[i - 1] < h[i] - t) i--;
+    if (x < M.l || x > W - M.r) return ocultar();
+    guia.setAttribute("x1", X(h[i])); guia.setAttribute("x2", X(h[i])); guia.setAttribute("opacity", 1);
+    puntos.forEach(k => { const v = k.y[i]; k.p.setAttribute("opacity", v == null ? 0 : 1); if (v != null) { k.p.setAttribute("cx", X(h[i])); k.p.setAttribute("cy", Y(v)); } });
+    globo.innerHTML = `<div style="color:var(--gris);margin-bottom:2px">t = ${num(h[i], 2)} h</div>` +
+      puntos.map(k => `<div><i style="background:${k.c}"></i>${k.nombre}: <b>${num(k.y[i], dec)} ${u}</b></div>`).join("");
+    globo.style.opacity = 1;
+    const gx = X(h[i]) + 14, ancho = globo.offsetWidth;
+    globo.style.left = (gx + ancho > W ? X(h[i]) - ancho - 14 : gx) + "px"; globo.style.top = (e.clientY - r.top - 30) + "px";
+  };
+  const ocultar = () => { guia.setAttribute("opacity", 0); puntos.forEach(k => k.p.setAttribute("opacity", 0)); globo.style.opacity = 0; };
+  svg.onpointerleave = () => { ocultar(); arrastre = null; };
+}
+// Zoom con Ctrl + rueda, arrastre para mover y doble clic para volver.
+let arrastre = null;
+const total = () => [actual.series.h[0], actual.series.h[actual.series.h.length - 1]];
+function mover(dh) {
+  const [a, b] = total(), w = vista[1] - vista[0];
+  let x0 = Math.min(Math.max(vista[0] + dh, a), b - w); vista = [x0, x0 + w]; dibujar();
+}
+svg.addEventListener("wheel", e => {
+  if (!e.ctrlKey) return;  // sin Ctrl la rueda mueve la página, no la gráfica
+  e.preventDefault();
+  const r = svg.getBoundingClientRect(), [a, b] = total(), W = svg.clientWidth;
+  const t = vista[0] + (e.clientX - r.left - M.l) / (W - M.l - M.r) * (vista[1] - vista[0]);
+  const f = e.deltaY < 0 ? 0.8 : 1.25, w = Math.min(b - a, Math.max((b - a) / 200, (vista[1] - vista[0]) * f));
+  let x0 = Math.min(Math.max(t - (t - vista[0]) * w / (vista[1] - vista[0]), a), b - w);
+  vista = [x0, x0 + w]; dibujar();
+}, { passive: false });
+svg.addEventListener("pointerdown", e => { arrastre = { x: e.clientX - svg.getBoundingClientRect().left, v: [...vista] }; svg.setPointerCapture(e.pointerId); });
+svg.addEventListener("pointerup", () => arrastre = null);
+svg.addEventListener("dblclick", () => { vista = null; dibujar(); });
+new ResizeObserver(() => dibujar()).observe($("#lienzo"));
+
+// --- Todas las pruebas ---
+const filas = [...D].sort((x, y) => x.fuente.localeCompare(y.fuente) || x.n - y.n).map(p => ({
+  Prueba: "P" + p.n, Nombre: p.nombre, Fuente: p.fuente, "Duración (h)": p.duracion, "Filas válidas": p.validas,
+  "E entrada (mWh)": p.e_ent, "E salida (mWh)": p.e_sal, "Salida / entrada (%)": 100 * p.e_sal / p.e_ent,
+  "V salida media (V)": p.v_sal, "σ V salida (mV)": p.sigma_vs }));
+tabla($("#t-todas"), filas, Object.keys(filas[0]).map(k => ({ t: k, n: typeof filas[0][k] === "number",
+  f: k === "Fuente" ? r => insignia(r.Fuente) : typeof filas[0][k] === "number" ? r => k === "Filas válidas" ? r[k] : num(r[k], 2) : null, k })));
+function barras(el, campo, dec, u) {
+  const orden = [...filas].sort((x, y) => y[campo] - x[campo]), max = orden[0][campo];
+  el.innerHTML = orden.map(r => `<div class="f"><span>${r.Prueba}</span><div class="pista" style="width:${Math.max(.5, 100 * r[campo] / max)}%;background:var(--${r.Fuente})" title="${r.Nombre}"></div><span>${num(r[campo], dec)} ${u}</span></div>`).join("");
+}
+barras($("#b-energia"), "E entrada (mWh)", 0, "mWh");
+barras($("#b-relacion"), "Salida / entrada (%)", 1, "%");
+$("#csv").addEventListener("click", () => {
+  const cols = Object.keys(filas[0]);
+  const txt = [cols, ...filas.map(r => cols.map(c => typeof r[c] === "number" ? +r[c].toFixed(4) : `"${r[c]}"`))].map(f => f.join(";")).join("\r\n");
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob(["﻿" + txt], { type: "text/csv" })), download: "resumen_pruebas.csv" });
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+prueba();
+</script>
+</body>
+</html>

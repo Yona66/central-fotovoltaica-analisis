@@ -6,25 +6,27 @@ sensores INA260 mide la entrada y la salida, y su página web exporta cada prueb
 
 ## Uso rápido
 
+Abrir `tablero.html` con doble clic: gráficas y analítica de todas las pruebas, sin internet.
+
+Para sumar una prueba nueva, copiar su Excel en `datos/` y regenerar el tablero:
+
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
+pip install -r requirements.txt   # una sola vez
+python tablero.py
 ```
 
-Se abre en el navegador. Por defecto muestra las pruebas de `datos/`; en la barra
-lateral se pueden subir otros Excel del ESP32.
-
-- **Una prueba:** voltaje, corriente, potencia y energía (con zoom), teórico contra real
-  con % de error, estadística, caídas de tensión y descarga de la ficha en Excel.
+- **Una prueba:** voltaje, corriente, potencia y energía (lectura con el puntero, zoom con Ctrl + rueda),
+  teórico contra real con % de error, estadística y caídas de tensión.
 - **Todas las pruebas:** clasificación por fuente (paneles, batería, carga) y comparación.
 
 ## Archivos
 
 | Archivo | Qué es |
 |---|---|
-| `app.py` | Visor web (Streamlit) |
+| `tablero.py`, `tablero_plantilla.html` | Python lee los Excel, calcula todo y escribe `tablero.html` |
+| `tablero.html` | Resultado listo para abrir |
 | `fisica.py` | Ohm, potencia, energía, eficiencia, error, lectura de los Excel y filtros |
-| `analizar_prueba.py` | Lo mismo que el visor, por consola: `python analizar_prueba.py archivo.xlsx [--r 220]` |
+| `analizar_prueba.py` | Teórico contra real y ficha en Excel de una prueba: `python analizar_prueba.py archivo.xlsx [--r 220]` |
 | `corte3.ipynb` | Notebook comentado con todo el análisis, ya ejecutado |
 | `datos/` | Excel de las pruebas (`lote2/` y las pruebas 8 y 9) |
 | `graficas/`, `tablas/`, `resultados.json` | Salidas del notebook |
