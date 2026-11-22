@@ -229,7 +229,7 @@ path.linea.fina { stroke-width: 1; opacity: 0.35; filter: none; }
 .globo b { color: var(--text); font-variant-numeric: tabular-nums; }
 .globo i { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; }
 .mini { margin-top: 6px; }
-.mini svg { display: block; width: 100%; height: 44px; touch-action: none; cursor: pointer; border-radius: 10px; }
+.mini svg { display: block; width: 100%; height: 44px; touch-action: pan-y; cursor: pointer; border-radius: 10px; }
 .mini .fondo-mini { fill: var(--surface-2); }
 .mini .fuera { fill: var(--surface); opacity: 0.6; }
 .mini .ventana { fill: none; stroke: var(--brand); stroke-width: 1.5; cursor: grab; }
@@ -243,7 +243,7 @@ path.linea.fina { stroke-width: 1; opacity: 0.35; filter: none; }
 
 /* Teórico contra real */
 .errores { display: grid; }
-.err { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(70px, 0.8fr) auto; align-items: center; gap: 6px 16px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.err { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(70px, 0.8fr) auto; align-items: center; gap: 4px 16px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
 .err:last-child { border-bottom: 0; }
 .err b { font-size: 14px; font-weight: 650; color: var(--text); }
 .err small { display: block; font-size: 12.5px; color: var(--muted); }
@@ -265,12 +265,23 @@ path.linea.fina { stroke-width: 1; opacity: 0.35; filter: none; }
 
 /* Caídas y tablas */
 .cai-num { font: 750 46px/1 var(--fd); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.desliza { overflow: auto; overscroll-behavior: contain; border-radius: 12px; }
-.tabla-cai { max-height: 300px; margin-top: 14px; }
+/* Solo desliza a lo ancho: la rueda vertical siempre mueve la página */
+.desliza { overflow-x: auto; overscroll-behavior-x: contain; border-radius: 12px; }
+.tabla-cai { margin-top: 12px; }
+.tabla-cai th, .tabla-cai td { padding: 6px 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th { position: sticky; top: 0; z-index: 1; padding: 10px 12px; text-align: left; white-space: nowrap; font-size: 12.5px; font-weight: 650; color: var(--muted); background: var(--surface); border-bottom: 1px solid var(--line-2); }
 td { padding: 10px 12px; color: var(--text); border-bottom: 1px solid var(--line); white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+#tabla th { white-space: normal; vertical-align: bottom; line-height: 1.25; padding: 8px 10px; }
+#tabla th button { display: inline-block; text-align: inherit; }
+#tabla th small { display: block; font-weight: 500; opacity: 0.8; }
+#tabla th[aria-sort] button::after { content: none; }
+#tabla th[aria-sort] button::before { content: "↓ "; color: var(--brand); }
+#tabla th[aria-sort="ascending"] button::before { content: "↑ "; }
+#tabla td { height: var(--fila, 36px); padding: 0 10px; }
+#tabla td.nom { max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+#tabla .ficha-f { padding: 3px 8px; }
 tr:last-child td { border-bottom: 0; }
 th button { all: unset; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 th button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
@@ -656,7 +667,7 @@ function lista() {
 }
 $("#lista").addEventListener("click", e => { const b = e.target.closest(".tp"); if (b) seleccionar(+b.dataset.i); });
 function seleccionar(i, desplazar) {
-  sel = i; graf.vista = null; graf.animar = true; graf.idx = null;
+  sel = i; graf.vista = null; graf.animar = true; graf.idx = null; caidasTodas = false;
   $$("#lista .tp").forEach(b => b.setAttribute("aria-pressed", +b.dataset.i === i));
   $$("#tabla tr.fila").forEach(r => r.classList.toggle("activa", +r.dataset.i === i));
   detalle();
@@ -701,11 +712,15 @@ function rangos(p) {
       <div class="rango-pie"><span>mín ${num(lo, dec)}</span><span>máx ${num(hi, dec)}</span></div></div>`;
   }).join("");
 }
+let caidasTodas = false;
+$("#caidas").addEventListener("click", e => { if (e.target.closest("#ver-cai")) { caidasTodas = !caidasTodas; caidas(D[sel]); } });
 function caidas(p) {
   if (!p.n_caidas) { $("#caidas").innerHTML = `<div class="cai-num" style="color:var(--ok)">0</div><p class="nota">La salida se mantuvo estable en toda la prueba.</p>`; return; }
-  const filas = p.caidas.map(c => `<tr><td class="n">${num(c.t_s / 3600, 3)}</td><td class="n">${num(c.V_antes, 3)} → ${num(c.V_despues, 3)}</td><td class="n">${num(c.dV, 3)}</td><td class="n">${c.R_ohm == null ? "—" : num(c.R_ohm, 1)}</td></tr>`).join("");
-  $("#caidas").innerHTML = `<div class="cai-num">${num(p.n_caidas, 0)}</div><p class="nota">saltos bruscos en la salida${p.n_caidas > p.caidas.length ? ` (se muestran ${p.caidas.length})` : ""}</p>
-    <div class="desliza tabla-cai"><table><thead><tr><th class="n">t (h)</th><th class="n">V antes → después</th><th class="n">ΔV (V)</th><th class="n">R (Ω)</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+  const mayores = [...p.caidas].sort((a, b) => Math.abs(b.dV) - Math.abs(a.dV)), ver = caidasTodas ? mayores : mayores.slice(0, 6);
+  const filas = ver.map(c => `<tr><td class="n">${num(c.t_s / 3600, 3)}</td><td class="n">${num(c.V_antes, 3)} → ${num(c.V_despues, 3)}</td><td class="n">${num(c.dV, 3)}</td><td class="n">${c.R_ohm == null ? "—" : num(c.R_ohm, 1)}</td></tr>`).join("");
+  $("#caidas").innerHTML = `<div class="cai-num">${num(p.n_caidas, 0)}</div><p class="nota">saltos bruscos en la salida · ${caidasTodas ? `todos los registrados (${ver.length})` : `los ${ver.length} más grandes`}</p>
+    <div class="desliza tabla-cai"><table><thead><tr><th class="n">t (h)</th><th class="n">V antes → después</th><th class="n">ΔV (V)</th><th class="n">R (Ω)</th></tr></thead><tbody>${filas}</tbody></table></div>
+    ${mayores.length > 6 ? `<button class="btn btn-sec" type="button" id="ver-cai" style="margin-top:12px">${caidasTodas ? "Ver solo las 6 más grandes" : `Ver las ${mayores.length}`}</button>` : ""}`;
 }
 
 // --- Flujo de energía: entrada, conversión, salida y pérdidas ---
@@ -888,6 +903,7 @@ mini.addEventListener("pointermove", e => {
   else ponerVista(v0, Math.max(v1 + dh, v0 + (B.b - B.a) / 200));
 });
 mini.addEventListener("pointerup", () => graf.brocha = null);
+mini.addEventListener("pointercancel", () => graf.brocha = null);
 mini.addEventListener("keydown", e => {
   const [v0, v1] = graf.vista, paso = (v1 - v0) * 0.2;
   if (e.key === "ArrowLeft") ponerVista(v0 - paso, v1 - paso); else if (e.key === "ArrowRight") ponerVista(v0 + paso, v1 + paso);
@@ -896,20 +912,30 @@ mini.addEventListener("keydown", e => {
 });
 
 // --- Comparar ---
+// [clave, título, unidad, formato, numérica]
 const COLS = [
-  ["n", "Prueba", p => "P" + p.n, 0], ["nombre", "Nombre", p => esc(p.nombre), 0], ["fuente", "Fuente", p => `<span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span>`, 0],
-  ["duracion", "Duración (h)", p => num(p.duracion, 2), 1], ["validas", "Válidas", p => num(p.validas, 0), 1],
-  ["e_ent", "E entrada (mWh)", p => num(p.e_ent, 1), 1], ["e_sal", "E salida (mWh)", p => num(p.e_sal, 1), 1],
-  ["rel", "Salida / entrada (%)", p => num(rel(p), 1), 1], ["p_sal", "P salida media (mW)", p => num(p.p_sal, 1), 1],
-  ["v_sal", "V salida media (V)", p => num(p.v_sal, 3), 1], ["sigma_vs", "σ V salida (mV)", p => num(p.sigma_vs, 2), 1],
+  ["n", "Prueba", "", p => "P" + p.n, 0], ["nombre", "Nombre", "", p => esc(p.nombre), 0],
+  ["fuente", "Fuente", "", p => `<span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span>`, 0],
+  ["duracion", "Duración", "h", p => num(p.duracion, 2), 1], ["validas", "Lecturas", "válidas", p => num(p.validas, 0), 1],
+  ["e_ent", "E entrada", "mWh", p => num(p.e_ent, 1), 1], ["e_sal", "E salida", "mWh", p => num(p.e_sal, 1), 1],
+  ["rel", "Salida / entrada", "%", p => num(rel(p), 1), 1], ["p_sal", "P salida media", "mW", p => num(p.p_sal, 1), 1],
+  ["v_sal", "V salida media", "V", p => num(p.v_sal, 3), 1], ["sigma_vs", "σ V salida", "mV", p => num(p.sigma_vs, 2), 1],
 ];
 const valor = (p, k) => k === "rel" ? rel(p) : p[k];
 const visibles = () => D.map((p, i) => ({ p, i })).filter(({ p }) => filtroC === "todas" || p.fuente === filtroC);
 function comparar() { tabla(); barras(); dispersion(); }
 function tabla() {
   const filas = visibles().sort((x, y) => { const a = valor(x.p, orden.k), b = valor(y.p, orden.k); return (typeof a === "string" ? a.localeCompare(b) : a - b) * orden.dir; });
-  $("#tabla").innerHTML = `<thead><tr>${COLS.map(([k, t, , n]) => `<th class="${n ? "n" : ""}"${orden.k === k ? ` aria-sort="${orden.dir > 0 ? "ascending" : "descending"}"` : ""}><button type="button" data-k="${k}">${t}</button></th>`).join("")}</tr></thead><tbody>` +
-    filas.map(({ p, i }) => `<tr class="fila${i === sel ? " activa" : ""}" data-i="${i}">${COLS.map(([, , f, n]) => `<td class="${n ? "n" : ""}">${f(p)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  $("#tabla").innerHTML = `<thead><tr>${COLS.map(([k, t, u, , n]) => `<th class="${n ? "n" : ""}"${orden.k === k ? ` aria-sort="${orden.dir > 0 ? "ascending" : "descending"}"` : ""}><button type="button" data-k="${k}">${t}${u ? `<small>${u}</small>` : ""}</button></th>`).join("")}</tr></thead><tbody>` +
+    filas.map(({ p, i }) => `<tr class="fila${i === sel ? " activa" : ""}" data-i="${i}">${COLS.map(([k, , , f, n]) => `<td class="${n ? "n" : k === "nombre" ? "nom" : ""}"${k === "nombre" ? ` title="${esc(p.nombre)}"` : ""}>${f(p)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  ajustarTabla();
+}
+// Alto de fila según la pantalla: la tarjeta entera cabe sin subir y bajar.
+function ajustarTabla() {
+  const t = $("#tabla"), card = t.closest(".card"), n = t.tBodies[0]?.rows.length || 1;
+  t.style.setProperty("--fila", "30px");
+  const sobra = innerHeight - $(".nav").offsetHeight - 28 - card.offsetHeight;
+  t.style.setProperty("--fila", Math.round(Math.min(44, 30 + Math.max(0, sobra) / n)) + "px");
 }
 $("#tabla").addEventListener("click", e => {
   const b = e.target.closest("th button");
@@ -952,7 +978,7 @@ function dispersion() {
 }
 $("#csv").addEventListener("click", () => {
   const dec = x => typeof x === "number" ? (+x.toFixed(4)).toString().replace(".", ",") : `"${String(x).replace(/"/g, '""')}"`;
-  const filas = [COLS.map(c => c[1]), ...visibles().map(({ p }) => COLS.map(([k]) => dec(k === "n" ? "P" + p.n : valor(p, k))))];
+  const filas = [COLS.map(([, t, u]) => u ? `${t} (${u})` : t), ...visibles().map(({ p }) => COLS.map(([k]) => dec(k === "n" ? "P" + p.n : valor(p, k))))];
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.join(";")).join("\r\n")], { type: "text/csv" })), download: "resumen_pruebas.csv" });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
@@ -981,7 +1007,7 @@ segmento($("#filtro"), opcionesFuente(), filtro, v => { filtro = v; lista(); });
 segmento($("#filtro-c"), opcionesFuente(), filtroC, v => { filtroC = v; comparar(); });
 portada(); lista(); detalle(); comparar(); marcarTema();
 let tAncho, ancho = innerWidth, alto = innerHeight;
-addEventListener("resize", () => { clearTimeout(tAncho); tAncho = setTimeout(() => { if (innerWidth !== ancho || Math.abs(innerHeight - alto) > 40) { ancho = innerWidth; alto = innerHeight; dibujar(); flujo(); dispersion(); } }, 150); });
+addEventListener("resize", () => { clearTimeout(tAncho); tAncho = setTimeout(() => { if (innerWidth !== ancho || Math.abs(innerHeight - alto) > 40) { ancho = innerWidth; alto = innerHeight; dibujar(); flujo(); dispersion(); ajustarTabla(); } }, 150); });
 alTema.push(() => { dibujar(); flujo(); dispersion(); });
 </script>
 </body>
