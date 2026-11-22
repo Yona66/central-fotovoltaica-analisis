@@ -36,6 +36,7 @@
     linear-gradient(180deg, #eaf2fc 0%, #f3f6fb 46%);
   --estrellas: 0;
   --resplandor: none;
+  --planeta: #ffffff; --atmosfera: 251 176 59;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -59,6 +60,7 @@
       #04060d;
     --estrellas: 1;
     --resplandor: drop-shadow(0 0 5px currentColor);
+    --planeta: #060b19; --atmosfera: 56 189 248;
   }
 }
 :root[data-theme="dark"] {
@@ -82,6 +84,7 @@
     #04060d;
   --estrellas: 1;
   --resplandor: drop-shadow(0 0 5px currentColor);
+  --planeta: #060b19; --atmosfera: 56 189 248;
 }
 
 * { box-sizing: border-box; }
@@ -115,7 +118,13 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 
 /* Portada */
 .hero-txt { position: relative; z-index: 1; }
-.hero { position: relative; padding-block: clamp(48px, 9vh, 96px) 24px; }
+.hero { position: relative; isolation: isolate; overflow-x: clip; padding-block: clamp(48px, 9vh, 96px) clamp(70px, 12vh, 130px); }
+/* Horizonte de otro planeta: arco con borde de atmósfera que se desvanece hacia abajo */
+.hero::after { content: ""; position: absolute; z-index: -1; left: 50%; top: calc(100% - 64px); width: max(1700px, 170vw); aspect-ratio: 1; translate: -50% 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(farthest-side, var(--planeta) 96.5%, rgb(var(--atmosfera) / 0.6) 99.5%, rgb(var(--atmosfera) / 0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, transparent 360px); mask-image: linear-gradient(180deg, #000 0, transparent 360px); }
+.hero::before { content: ""; position: absolute; z-index: -1; left: 6%; right: 6%; bottom: 20px; height: 200px; border-radius: 50%; pointer-events: none; filter: blur(48px); opacity: 0.6;
+  background: radial-gradient(42% 60% at 30% 70%, rgb(var(--atmosfera) / 0.4), transparent 70%), radial-gradient(36% 55% at 72% 62%, color-mix(in oklch, var(--brand) 45%, transparent), transparent 70%); }
 .eti { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 14px; font: 650 12px/1 var(--ft); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); }
 .vivo { width: 8px; height: 8px; border-radius: 50%; background: var(--bateria); }
 .hero h1 { max-width: 900px; font-size: clamp(38px, 6vw, 76px); line-height: 1.02; font-weight: 750; letter-spacing: -0.035em; }
@@ -286,9 +295,12 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
 /* Brillo y giro 3D de las tarjetas con el puntero */
 .inclina::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 0%), color-mix(in oklch, var(--c, var(--brand)) 16%, transparent), transparent 62%); transition: opacity 150ms ease-out; }
 
-/* Aparición al llegar a cada parte */
-.js .revela { opacity: 0; translate: 0 12px; filter: blur(4px); transition-property: opacity, translate, filter; transition-duration: 300ms; transition-timing-function: ease-out; transition-delay: var(--d, 0ms); }
-.js .revela.visto { opacity: 1; translate: 0 0; filter: blur(0); }
+/* Aparición en 3D al llegar a cada parte: el bloque se endereza hacia el lector */
+.hero-txt, .bloque, .bento, .formulas, .cifras, .lista, .a-kpis, .anillo-caja { perspective: 1400px; }
+.js .revela { opacity: 0; translate: 0 18px; rotate: x 14deg; filter: blur(4px); transform-origin: 50% 100%; transition-property: opacity, translate, rotate, filter; transition-duration: 300ms, 500ms, 500ms, 300ms; transition-timing-function: ease-out, var(--suave), var(--suave), ease-out; transition-delay: var(--d, 0ms); }
+.js .revela.visto { opacity: 1; translate: 0 0; rotate: x 0deg; filter: blur(0); }
+.fugaces { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: var(--estrellas); }
+.fugaces i { position: absolute; left: var(--x); top: var(--y); width: 150px; height: 1.5px; border-radius: 2px; opacity: 0; rotate: -23.6deg; background: linear-gradient(90deg, rgb(255 255 255 / 0.95), transparent); }
 
 @media (hover: hover) {
   .enlaces a:hover { color: var(--text); }
@@ -311,10 +323,13 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
   .vivo { animation: latido 2.2s ease-out infinite; }
   path.linea.dibuja { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trazo 800ms var(--suave) forwards; }
   .flujo .chispa { animation: fluye 1.3s linear infinite; }
+  .fugaces i { animation: fugaz 12s ease-out infinite; animation-delay: var(--t); }
+  .gira { transform-origin: 50% 0%; animation: giro 460ms var(--suave) both; animation-delay: var(--d, 0ms); }
+  .anillo.gira { transform-origin: 50% 50%; animation: giroY 700ms var(--suave) both; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .js .revela { translate: none; filter: none; }
+  .js .revela { translate: none; rotate: none; filter: none; }
   .tema > svg { transition-property: opacity; }
   .tema[data-t="light"] .ico-sol, .tema[data-t="dark"] .ico-luna { scale: 1; filter: none; }
 }
@@ -322,7 +337,16 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
 @keyframes latido { 0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--bateria) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 10px transparent; } }
 @keyframes trazo { to { stroke-dashoffset: 0; } }
 @keyframes fluye { to { stroke-dashoffset: -13.5; } }
+@keyframes fugaz { 0% { opacity: 0; translate: 0 0; } 2% { opacity: 1; } 8%, 100% { opacity: 0; translate: -340px 148px; } }
+@keyframes giro { from { opacity: 0; rotate: x -75deg; } }
+@keyframes giroY { from { opacity: 0.2; rotate: y 180deg; } }
 
+@media (pointer: coarse) {
+  .icono-btn, .tema { width: 44px; height: 44px; }
+  .seg button { min-height: 44px; }
+  .enlaces a { min-width: 44px; min-height: 44px; justify-content: center; }
+  .bh { min-height: 40px; }
+}
 @media (max-width: 1040px) {
   .a-anillo, .a-kpis, .a-flujo, .a-comp, .a-est, .a-cai, .a-disp, .a-barras { grid-column: span 12; }
   .a-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -354,6 +378,7 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
 </head>
 <body>
 <canvas id="estrellas" aria-hidden="true"></canvas>
+<div class="fugaces" aria-hidden="true"><i style="--x:82%;--y:10%;--t:1.5s"></i><i style="--x:58%;--y:26%;--t:5.2s"></i><i style="--x:94%;--y:44%;--t:8.6s"></i></div>
 <a class="saltar" href="#explorar">Saltar al contenido</a>
 
 <header class="nav">
@@ -376,8 +401,8 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
 </header>
 
 <main>
-  <section id="inicio" class="envoltura hero">
-    <div class="hero-txt">
+  <section id="inicio" class="hero">
+    <div class="envoltura hero-txt">
       <p class="eti revela"><span class="vivo"></span>Maqueta real · datos del ESP32</p>
       <h1 class="revela" style="--d:100ms">Del Sol a la carga, <em>cada milivatio medido</em></h1>
       <p class="bajada revela" style="--d:200ms">Dos sensores INA260 vigilan la entrada (paneles o batería) y la salida del elevador MT3608. Python limpia los datos, calcula la energía y compara lo real con lo teórico.</p>
@@ -436,9 +461,9 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
             </div>
           </div>
           <div class="leyenda"><span style="--c:var(--entrada)">Entrada</span><span style="--c:var(--salida)">Salida (MT3608)</span></div>
-          <div class="lienzo" id="lienzo"><svg id="svg" height="380" role="img" aria-label="Gráfica de la prueba seleccionada"></svg><div class="globo" id="globo"></div></div>
+          <div class="lienzo" id="lienzo"><svg id="svg" height="380" role="group" tabindex="0" aria-roledescription="gráfica" aria-label="Gráfica de la prueba seleccionada"></svg><div class="globo" id="globo"></div></div>
           <div class="mini"><svg id="mini" role="slider" aria-label="Tramo visible de la prueba; arrastra para moverlo" tabindex="0"></svg></div>
-          <p class="nota">Filtro: mediana de 5 muestras (quita picos) y media móvil de 60 s (suaviza). Abajo: arrastra la ventana para moverte por la prueba o sus bordes para acercar. Con mouse también sirve Ctrl + rueda y doble clic para volver.</p>
+          <p class="nota">Filtro: mediana de 5 muestras (quita picos) y media móvil de 60 s (suaviza). Abajo: arrastra la ventana para moverte por la prueba o sus bordes para acercar. Con mouse también sirve Ctrl + rueda y doble clic para volver; con teclado, las flechas.</p>
         </div>
 
         <div class="card a-flujo revela">
@@ -629,7 +654,7 @@ function lista() {
 }
 $("#lista").addEventListener("click", e => { const b = e.target.closest(".tp"); if (b) seleccionar(+b.dataset.i); });
 function seleccionar(i, desplazar) {
-  sel = i; graf.vista = null; graf.animar = true;
+  sel = i; graf.vista = null; graf.animar = true; graf.idx = null;
   $$("#lista .tp").forEach(b => b.setAttribute("aria-pressed", +b.dataset.i === i));
   $$("#tabla tr.fila").forEach(r => r.classList.toggle("activa", +r.dataset.i === i));
   detalle();
@@ -647,6 +672,8 @@ function detalle() {
     kpi(p.fuente, "Energía de entrada", num(p.e_ent), "mWh", `potencia media ${num(p.p_ent)} mW`, `var(--${p.fuente})`),
     kpi("rayo", "Energía de salida", num(p.e_sal), "mWh", `potencia media ${num(p.p_sal)} mW`, "var(--salida)"),
   ].join("");
+  $$("#kpis .kpi").forEach((n, i) => { n.classList.add("gira"); n.style.setProperty("--d", i * 50 + "ms"); });
+  const an = $(".anillo"); an.classList.remove("gira"); void an.offsetWidth; an.classList.add("gira");
   $("#anillo-v").setAttribute("stroke-dashoffset", 100 - Math.max(0, Math.min(100, r)));
   contar($("#anillo-n"), r, 1);
   const a = (-90 + 0.97 * 360) * Math.PI / 180;
@@ -768,6 +795,10 @@ function dibujar() {
     if (x < M.l || x > W - M.r) return ocultar();
     const t = v0 + (x - M.l) / iw * (v1 - v0);
     let i = h.findIndex(v => v >= t); if (i < 0) i = h.length - 1; if (i > 0 && t - h[i - 1] < h[i] - t) i--;
+    mostrar(i);
+  };
+  const mostrar = i => {
+    graf.idx = i;
     guia.setAttribute("x1", X(h[i])); guia.setAttribute("x2", X(h[i])); guia.setAttribute("opacity", 1);
     puntos.forEach(k => { const v = k.y[i]; k.p.setAttribute("opacity", v == null ? 0 : 1); if (v != null) { k.p.setAttribute("cx", X(h[i])); k.p.setAttribute("cy", Y(v)); } });
     globo.innerHTML = `<div style="margin-bottom:3px">t = <b>${num(h[i], 3)} h</b></div>` + puntos.map(k => `<div><i style="background:${k.c}"></i>${k.n}: <b>${num(k.y[i], dec)} ${u}</b></div>`).join("");
@@ -776,7 +807,9 @@ function dibujar() {
     globo.style.left = (gx + w > W ? X(h[i]) - w - 14 : gx) + "px"; globo.style.top = M.t + 6 + "px";
   };
   const ocultar = () => { guia.setAttribute("opacity", 0); puntos.forEach(k => k.p.setAttribute("opacity", 0)); globo.style.opacity = 0; };
-  graf.ocultar = ocultar;
+  graf.ocultar = ocultar; graf.mostrar = mostrar;
+  const ini = y => y.find(v => v != null), fin = y => [...y].reverse().find(v => v != null);
+  svg.setAttribute("aria-label", `${graf.mag} de la prueba P${p.n}: la entrada va de ${num(ini(s[a]), dec)} a ${num(fin(s[a]), dec)} ${u} y la salida de ${num(ini(s[b]), dec)} a ${num(fin(s[b]), dec)} ${u}. Usa las flechas para recorrerla.`);
   dibujarMini();
 }
 function dibujarMini() {
@@ -818,6 +851,17 @@ svg.addEventListener("pointerup", () => graf.arrastre = null);
 svg.addEventListener("pointercancel", () => { graf.arrastre = null; graf.ocultar?.(); });
 svg.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !graf.arrastre) graf.ocultar?.(); });
 svg.addEventListener("dblclick", () => { graf.vista = null; dibujar(); });
+svg.addEventListener("keydown", e => {
+  const h = D[sel].series.h, [v0, v1] = graf.vista;
+  let i = graf.idx ?? Math.max(0, h.findIndex(v => v >= v0));
+  if (e.key === "ArrowRight") i += e.shiftKey ? 10 : 1; else if (e.key === "ArrowLeft") i -= e.shiftKey ? 10 : 1;
+  else if (e.key === "Escape") { graf.ocultar?.(); return; } else return;
+  e.preventDefault();
+  i = Math.max(0, Math.min(h.length - 1, i));
+  if (h[i] < v0 || h[i] > v1) { const w = v1 - v0; ponerVista(h[i] - w / 2, h[i] + w / 2); }
+  graf.mostrar(i);
+});
+svg.addEventListener("blur", () => graf.ocultar?.());
 svg.addEventListener("wheel", e => {
   if (!e.ctrlKey) return;  // sin Ctrl la rueda mueve la página, no la gráfica
   e.preventDefault();
