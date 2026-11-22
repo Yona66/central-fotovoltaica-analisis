@@ -7,6 +7,7 @@ import json
 import math
 import sys
 import webbrowser
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,19 @@ SALIDA = RAIZ / "tablero.html"
 
 def lista(x, dec=4):
     return [None if v is None or not math.isfinite(v) else round(float(v), dec) for v in np.asarray(x, float)]
+
+
+def limpio(o):
+    """NaN e infinitos a null: JSON no los admite."""
+    if isinstance(o, dict):
+        return {k: limpio(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [limpio(v) for v in o]
+    if isinstance(o, (float, np.floating)):
+        return float(o) if math.isfinite(o) else None
+    if isinstance(o, np.integer):
+        return int(o)
+    return o
 
 
 def ficha(n, nombre, fuente, archivo, d):
@@ -42,6 +56,8 @@ def ficha(n, nombre, fuente, archivo, d):
         "n": int(n), "nombre": nombre or "sin nombre", "fuente": fuente, "archivo": archivo,
         "duracion": float(d.h.max()), "lecturas": len(d), "validas": len(ok),
         "e_ent": e_ent, "e_sal": e_sal, "v_sal": float(ok.Vs.mean()), "sigma_vs": float(1000 * np.std(ok.Vs)),
+        "p_ent": float(ok.P.mean()), "p_sal": float(ok.Ps.mean()),
+        "spark": lista(filtrar(ok.V, ok.t)[:: max(1, len(ok) // 48)], 3),  # miniatura para la tarjeta
         "comp": comp.to_dict("records"),
         "est": [{"Magnitud": k, **v} for k, v in est.to_dict("index").items()],
         "caidas": cai.round(3).head(200).to_dict("records"), "n_caidas": len(cai),
@@ -69,9 +85,11 @@ def main():
     if not pruebas:
         sys.exit("No hay pruebas para mostrar.")
     pruebas.sort(key=lambda p: p["n"])
-    datos = json.dumps(pruebas, ensure_ascii=False, separators=(",", ":"), default=float).replace("NaN", "null")
+    datos = json.dumps(limpio({"generado": date.today().isoformat(), "pruebas": pruebas}),
+                       ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     plantilla = (RAIZ / "tablero_plantilla.html").read_text(encoding="utf-8")
-    SALIDA.write_text(plantilla.replace("__DATOS__", datos), encoding="utf-8")
+    # "<" escapado: un nombre con "</script>" no puede romper la página.
+    SALIDA.write_text(plantilla.replace("__DATOS__", datos.replace("<", r"\u003c")), encoding="utf-8")
     print(f"{len(pruebas)} pruebas -> {SALIDA.name} ({SALIDA.stat().st_size / 1e6:.1f} MB)")
     if "--sin-abrir" not in sys.argv:
         webbrowser.open(SALIDA.as_uri())
