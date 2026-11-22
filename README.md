@@ -1,7 +1,7 @@
 # Central fotovoltaica: análisis de datos
 
 Visualización y analítica de las medidas de una maqueta de central fotovoltaica
-(2 paneles de 5 V, TP4056, 2 baterías 18650, elevador MT3608 a 5 V). Un ESP32 con
+(6 paneles de 5 V en paralelo, TP4056, 2 baterías 18650, elevador MT3608 a 5 V). Un ESP32 con
 sensores INA260 mide la entrada y la salida, y su página web exporta cada prueba a Excel.
 
 ## Uso rápido
