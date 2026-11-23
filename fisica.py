@@ -45,7 +45,8 @@ def eficiencia(p_sal, p_ent):
 
 
 def error_pct(teorico, real):
-    return 100 * np.abs(np.asarray(real) - np.asarray(teorico)) / np.abs(np.asarray(teorico))
+    with np.errstate(divide="ignore", invalid="ignore"):  # teórico 0 da inf o NaN, que luego se descarta
+        return 100 * np.abs(np.asarray(real) - np.asarray(teorico)) / np.abs(np.asarray(teorico))
 
 
 # --- Carga de datos ---
@@ -73,18 +74,46 @@ def leer_pruebas(archivo, nombre_archivo=None):
         nombre, f = info.get(n, ("", ""))
         # Las pruebas de consumo son de noche y van con la batería, aunque en la página quedara "paneles".
         fuente = ("bateria" if "consumo" in nombre.lower() or "bater" in f or "bateria" in arch
-                  else "paneles" if "panel" in f or "paneles" in arch or "Generaci" in nombre else "bateria")
+                  else "paneles" if "panel" in f or "panel" in arch or "panel" in nombre.lower() or "Generaci" in nombre
+                  else "bateria")
         df = _tabla(w)
         df["h"] = df.t / 3600
         df["nombre"] = nombre
         yield n, nombre, fuente, df
 
 
+# Cada lote es una carpeta de datos/; su letra evita que se repitan los números de prueba.
+LOTES = {"lote1": "A", "lote2": "B", "lote3": "C"}
+# Lote A (14-19 oct): sin fuente en el Excel. Tras P8 el sensor de entrada pasó al lado de los paneles;
+# P8 se corta ahí y P9 (carga) a los 1200 s, cuando se desconectó.
+AJUSTES = {"A1": "paneles", "A8": ("bateria", 20000), "A9": ("carga", 1200), "A10": "paneles"}
+
+
+def todas_las_pruebas(carpeta=DATOS):
+    """Cada prueba de datos/ como (id, nombre, fuente, archivo, DataFrame), con los ajustes del lote A."""
+    for f in sorted(Path(carpeta).rglob("*.xlsx"), key=lambda f: (f.parent.name, f.name)):
+        letra = LOTES.get(f.parent.name, "P")
+        for n, nombre, fuente, df in leer_pruebas(f):
+            pid = f"{letra}{n}"
+            aj = AJUSTES.get(pid)
+            if isinstance(aj, tuple):
+                fuente, df = aj[0], df[df.t < aj[1]]
+            elif aj:
+                fuente = aj
+            yield pid, nombre, fuente, f.name, df
+
+
+def orden(pid):
+    """A8 antes que A10 y que B1."""
+    return pid[0], int(pid[1:])
+
+
 def cargar(carpeta=DATOS):
-    """Todas las pruebas de los Excel de la carpeta en una sola tabla."""
-    tablas = [df.assign(prueba=n, fuente=fuente) for f in sorted(Path(carpeta).rglob("*.xlsx"))
-              for n, _, fuente, df in leer_pruebas(f)]
-    return pd.concat(tablas, ignore_index=True).sort_values(["prueba", "t"]).reset_index(drop=True)
+    """Todas las pruebas en una sola tabla."""
+    tablas = [df.assign(prueba=pid, fuente=fuente) for pid, _, fuente, _, df in todas_las_pruebas(carpeta)]
+    d = pd.concat(tablas, ignore_index=True)
+    d["_o"] = d.prueba.map(orden)
+    return d.sort_values(["_o", "t"]).drop(columns="_o").reset_index(drop=True)
 
 
 # --- Limpieza ---

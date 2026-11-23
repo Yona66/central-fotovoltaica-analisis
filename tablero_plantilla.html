@@ -661,7 +661,7 @@ function sparkline(v) {
 function lista() {
   $("#lista").innerHTML = D.map((p, i) => filtro !== "todas" && p.fuente !== filtro ? "" :
     `<button type="button" class="tp inclina" data-i="${i}" style="--c:var(--${p.fuente})" aria-pressed="${i === sel}" aria-label="Prueba ${p.n}: ${esc(p.nombre)}">
-      <span class="tp-cab"><b>P${p.n}</b><span class="ficha-f">${ico(p.fuente)}${NOMBRE[p.fuente]}</span></span>
+      <span class="tp-cab"><b>${p.n}</b><span class="ficha-f">${ico(p.fuente)}${NOMBRE[p.fuente]}</span></span>
       <span class="tp-nom">${esc(p.nombre)}</span>${sparkline(p.spark)}
       <span class="tp-pie"><span>${num(p.duracion, 2)} h</span><span>${num(p.e_ent, 0)} mWh</span></span></button>`).join("");
 }
@@ -678,7 +678,7 @@ function seleccionar(i, desplazar) {
 const kpi = (i, et, v, u, pie, c) => `<div class="card kpi inclina"${c ? ` style="--c:${c}"` : ""}><div class="ico">${ico(i)}</div><div class="et">${et}</div><div class="v">${v}<small>${u}</small></div><div class="pie">${pie}</div></div>`;
 function detalle() {
   const p = D[sel], r = rel(p);
-  $("#ficha-cab").innerHTML = `<h3>P${p.n} · ${esc(p.nombre)}</h3><span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span><span class="meta">${esc(p.archivo)}</span>`;
+  $("#ficha-cab").innerHTML = `<h3>${p.n} · ${esc(p.nombre)}</h3><span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span><span class="meta">${esc(p.archivo)}</span>`;
   $("#kpis").innerHTML = [
     kpi("reloj", "Duración", num(p.duracion, 2), "h", `${num(p.lecturas, 0)} lecturas`),
     kpi("filas", "Lecturas válidas", num(p.validas, 0), "", `${num(p.lecturas - p.validas, 0)} descartadas al limpiar`),
@@ -829,7 +829,7 @@ function dibujar() {
   const ocultar = () => { guia.setAttribute("opacity", 0); puntos.forEach(k => k.p.setAttribute("opacity", 0)); globo.style.opacity = 0; };
   graf.ocultar = ocultar; graf.mostrar = mostrar;
   const ini = y => y.find(v => v != null), fin = y => [...y].reverse().find(v => v != null);
-  svg.setAttribute("aria-label", `${graf.mag} de la prueba P${p.n}: la entrada va de ${num(ini(s[a]), dec)} a ${num(fin(s[a]), dec)} ${u} y la salida de ${num(ini(s[b]), dec)} a ${num(fin(s[b]), dec)} ${u}. Usa las flechas para recorrerla.`);
+  svg.setAttribute("aria-label", `${graf.mag} de la prueba ${p.n}: la entrada va de ${num(ini(s[a]), dec)} a ${num(fin(s[a]), dec)} ${u} y la salida de ${num(ini(s[b]), dec)} a ${num(fin(s[b]), dec)} ${u}. Usa las flechas para recorrerla.`);
   dibujarMini();
 }
 function dibujarMini() {
@@ -914,7 +914,7 @@ mini.addEventListener("keydown", e => {
 // --- Comparar ---
 // [clave, título, unidad, formato, numérica]
 const COLS = [
-  ["n", "Prueba", "", p => "P" + p.n, 0], ["nombre", "Nombre", "", p => esc(p.nombre), 0],
+  ["n", "Prueba", "", p => p.n, 0], ["nombre", "Nombre", "", p => esc(p.nombre), 0],
   ["fuente", "Fuente", "", p => `<span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span>`, 0],
   ["duracion", "Duración", "h", p => num(p.duracion, 2), 1], ["validas", "Lecturas", "válidas", p => num(p.validas, 0), 1],
   ["e_ent", "E entrada", "mWh", p => num(p.e_ent, 1), 1], ["e_sal", "E salida", "mWh", p => num(p.e_sal, 1), 1],
@@ -944,8 +944,8 @@ $("#tabla").addEventListener("click", e => {
 });
 function barras() {
   const v = visibles().sort((x, y) => y.p.e_ent - x.p.e_ent), max = Math.max(...v.map(x => x.p.e_ent), 1);
-  $("#barras").innerHTML = v.map(({ p, i }) => `<button type="button" class="bh" data-i="${i}" style="--c:var(--${p.fuente})" aria-label="P${p.n}: ${num(p.e_ent, 0)} mWh">
-    <span>P${p.n}</span><span class="pista" style="--w:${(100 * p.e_ent / max).toFixed(1)}%"></span><span>${num(p.e_ent, 0)} mWh</span></button>`).join("");
+  $("#barras").innerHTML = v.map(({ p, i }) => `<button type="button" class="bh" data-i="${i}" style="--c:var(--${p.fuente})" aria-label="${p.n}: ${num(p.e_ent, 0)} mWh">
+    <span>${p.n}</span><span class="pista" style="--w:${(100 * p.e_ent / max).toFixed(1)}%"></span><span>${num(p.e_ent, 0)} mWh</span></button>`).join("");
 }
 $("#barras").addEventListener("click", e => { const b = e.target.closest(".bh"); if (b) seleccionar(+b.dataset.i, true); });
 function dispersion() {
@@ -964,9 +964,9 @@ function dispersion() {
   el("line", { x1: m.l, x2: W - m.r, y1: Y(97), y2: Y(97), stroke: "var(--brand)", "stroke-dasharray": "5 5", "stroke-width": 1.5 }, s);
   el("text", { x: W - m.r - 4, y: Y(97) - 6, "text-anchor": "end", style: "fill:var(--brand);font:600 12px var(--ft)" }, s).textContent = "97 %: máximo del MT3608";
   v.sort((a, b) => b.p.e_ent - a.p.e_ent).forEach(({ p, i }) => {
-    const c = el("circle", { class: "pt", cx: X(Math.log10(Math.max(p.p_sal, 0.1))), cy: Y(rel(p)), r: 6 + 9 * Math.sqrt(p.e_ent / maxE), style: `fill:var(--${p.fuente});fill-opacity:.85`, tabindex: 0, role: "button", "aria-label": `P${p.n}: ${num(rel(p))} % con ${num(p.p_sal)} mW` }, s);
+    const c = el("circle", { class: "pt", cx: X(Math.log10(Math.max(p.p_sal, 0.1))), cy: Y(rel(p)), r: 6 + 9 * Math.sqrt(p.e_ent / maxE), style: `fill:var(--${p.fuente});fill-opacity:.85`, tabindex: 0, role: "button", "aria-label": `${p.n}: ${num(rel(p))} % con ${num(p.p_sal)} mW` }, s);
     const ver = () => {
-      gd.innerHTML = `<div><b>P${p.n}</b> · ${esc(p.nombre)}</div><div>Salida / entrada: <b>${num(rel(p))} %</b></div><div>Potencia de salida: <b>${num(p.p_sal)} mW</b></div><div>Energía de entrada: <b>${num(p.e_ent, 0)} mWh</b></div>`;
+      gd.innerHTML = `<div><b>${p.n}</b> · ${esc(p.nombre)}</div><div>Salida / entrada: <b>${num(rel(p))} %</b></div><div>Potencia de salida: <b>${num(p.p_sal)} mW</b></div><div>Energía de entrada: <b>${num(p.e_ent, 0)} mWh</b></div>`;
       gd.style.opacity = 1; const cx = +c.getAttribute("cx"), w = gd.offsetWidth;
       gd.style.left = Math.max(0, Math.min(cx + 16, W - w)) + "px"; gd.style.top = Math.max(0, +c.getAttribute("cy") - 90) + "px";
     };
@@ -978,7 +978,7 @@ function dispersion() {
 }
 $("#csv").addEventListener("click", () => {
   const dec = x => typeof x === "number" ? (+x.toFixed(4)).toString().replace(".", ",") : `"${String(x).replace(/"/g, '""')}"`;
-  const filas = [COLS.map(([, t, u]) => u ? `${t} (${u})` : t), ...visibles().map(({ p }) => COLS.map(([k]) => dec(k === "n" ? "P" + p.n : valor(p, k))))];
+  const filas = [COLS.map(([, t, u]) => u ? `${t} (${u})` : t), ...visibles().map(({ p }) => COLS.map(([k]) => dec(k === "n" ? p.n : valor(p, k))))];
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.join(";")).join("\r\n")], { type: "text/csv" })), download: "resumen_pruebas.csv" });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });

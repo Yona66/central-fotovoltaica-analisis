@@ -6,7 +6,7 @@ calcula la física (potencia, energía, eficiencia, errores) y las muestra en un
 ## Uso rápido
 
 - **Ver resultados:** abrir `tablero.html` con doble clic. Funciona sin internet.
-- **Sumar una prueba nueva:** copiar su Excel en `datos/` y regenerar el tablero:
+- **Sumar una prueba nueva:** copiar su Excel en `datos/lote3/` (o una carpeta `loteN/` nueva) y regenerar el tablero:
 
 ```bash
 pip install -r requirements.txt   # una sola vez
@@ -36,10 +36,19 @@ Requiere Python 3.10 o superior.
   - **salida**: después del elevador, justo antes de la carga.
 - El ESP32 publica una página web. Desde el celular se crea una *prueba*, se graba una
   lectura cada pocos segundos y al final se descarga un **Excel** con todas las lecturas.
-- Cada Excel trae una hoja por prueba. Esos archivos están en `datos/`: 8 pruebas del 19 al 23 de noviembre,
-  4 de día con los paneles y 4 de noche con la batería.
+- Cada Excel trae una hoja por prueba. Se usan **todos**, en tres carpetas de `datos/`:
+
+| Lote | Carpeta | Fechas | Pruebas |
+|---|---|---|---|
+| A | `lote1/` | 14–19 oct | A1–A10 |
+| B | `lote2/` | 30 oct–4 nov | B1, B3–B6, B19, B20, B22–B24 |
+| C | `lote3/` | 19–23 nov (6 paneles) | C1–C8 |
+
+- La letra evita números repetidos (hay una P8 en el lote A y otra en el C).
 - Las pruebas de **consumo** se hacen de noche con la batería: el análisis las toma así aunque en la página
-  hayan quedado como "paneles" (pasó en P2 y P4).
+  hayan quedado como "paneles" (pasó en C2 y C4).
+- Lote A: tras A8 el sensor de entrada pasó al lado de los paneles; A8 se corta ahí y A9 (carga) a los 20 min.
+  A4 y A5 no tienen filas válidas (el sensor de salida no marcaba).
 
 ## 3. Qué hace el análisis (requerimientos 1, 2 y 3)
 
@@ -63,7 +72,7 @@ Requiere Python 3.10 o superior.
 | `corte3.ipynb` | Notebook con todo el análisis paso a paso, ya ejecutado. |
 | `tablero.py` + `tablero_plantilla.html` | Leen todos los Excel de `datos/` y escriben `tablero.html`. |
 | `tablero.html` | El tablero listo para abrir. |
-| `datos/` | Excel de las pruebas. |
+| `datos/` | Excel de todas las pruebas, por lote. |
 | `graficas/`, `tablas/`, `resultados.json` | Salidas del notebook. |
 
 ## 5. El tablero (`tablero.html`)

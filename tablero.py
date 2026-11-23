@@ -1,7 +1,7 @@
 """Genera tablero.html con las gráficas y la analítica de todas las pruebas; se abre con doble clic.
 
 Uso: python tablero.py [otros.xlsx ...] [--sin-abrir]
-Lee todos los Excel de datos/ (para sumar una prueba nueva basta con copiarla ahí).
+Lee todos los Excel de datos/loteN/ (para sumar una prueba nueva basta con copiarla ahí).
 """
 import json
 import math
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from analizar_prueba import comparar, estadistica
-from fisica import DATOS, RAIZ, caidas, energia, filtrar, leer_pruebas, limpiar, potencia
+from fisica import RAIZ, caidas, energia, filtrar, leer_pruebas, limpiar, orden, potencia, todas_las_pruebas
 
 MAX_PUNTOS = 1500   # por serie: suficiente para la gráfica y mantiene el HTML liviano
 SALIDA = RAIZ / "tablero.html"
@@ -53,7 +53,7 @@ def ficha(n, nombre, fuente, archivo, d):
     dt = np.median(np.diff(ok.t)) if len(ok) > 1 else 5
     e_ent, e_sal = float(comp.Real[2]), float(comp.Real[3])
     return {
-        "n": int(n), "nombre": nombre or "sin nombre", "fuente": fuente, "archivo": archivo,
+        "n": n, "nombre": nombre or "sin nombre", "fuente": fuente, "archivo": archivo,
         "duracion": float(d.h.max()), "lecturas": len(d), "validas": len(ok),
         "e_ent": e_ent, "e_sal": e_sal, "v_sal": float(ok.Vs.mean()), "sigma_vs": float(1000 * np.std(ok.Vs)),
         "p_ent": float(ok.P.mean()), "p_sal": float(ok.Ps.mean()),
@@ -67,21 +67,22 @@ def ficha(n, nombre, fuente, archivo, d):
 
 
 def main():
-    archivos = sorted(DATOS.rglob("*.xlsx")) + [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
+    extra = [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
     pruebas = []
-    for f in archivos:
+    fuentes = [todas_las_pruebas()] + [((f"P{n}", nom, fu, f.name, d) for n, nom, fu, d in leer_pruebas(f)) for f in extra]
+    for gen in fuentes:
         try:
-            for n, nombre, fuente, d in leer_pruebas(f):
-                p = ficha(n, nombre, fuente, f.name, d)
+            for pid, nombre, fuente, archivo, d in gen:
+                p = ficha(pid, nombre, fuente, archivo, d)
                 if p:
                     pruebas.append(p)
                 else:
-                    print(f"  {f.name} P{n}: muy pocas filas válidas, se omite")
+                    print(f"  {archivo} {pid}: muy pocas filas válidas, se omite")
         except Exception as e:  # un archivo malo no detiene los demás
-            print(f"  {f.name}: no se pudo leer ({e})")
+            print(f"  no se pudo leer ({e})")
     if not pruebas:
         sys.exit("No hay pruebas para mostrar.")
-    pruebas.sort(key=lambda p: p["n"])
+    pruebas.sort(key=lambda p: orden(p["n"]) if p["n"][1:].isdigit() else ("Z", 0))
     datos = json.dumps(limpio({"generado": date.today().isoformat(), "pruebas": pruebas}),
                        ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     plantilla = (RAIZ / "tablero_plantilla.html").read_text(encoding="utf-8")
