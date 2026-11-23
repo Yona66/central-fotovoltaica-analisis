@@ -1,5 +1,4 @@
 """Funciones físicas, carga y limpieza de las medidas de la central fotovoltaica."""
-import glob
 import re
 from pathlib import Path
 
@@ -51,21 +50,10 @@ def error_pct(teorico, real):
 
 # --- Carga de datos ---
 
-# Del primer lote solo la descarga completa de P8 y la carga de P9; después el sensor se movió de sitio.
-LOTE1 = {8: ("bateria", 20000), 9: ("carga", 1200)}
-
-
 def _tabla(hoja):
     filas = [r[:11] for r in hoja.iter_rows(min_row=3, values_only=True) if r[0] is not None]
     df = pd.DataFrame(filas, columns=COLS)
     df[COLS[2:]] = df[COLS[2:]].apply(pd.to_numeric, errors="coerce")
-    return df
-
-
-def _leer(archivo):
-    wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
-    df = _tabla(next(w for w in wb.worksheets if w.title.startswith("Prueba")))
-    df["nombre"] = next(wb["Resumen"].iter_rows(min_row=3, max_row=3, values_only=True))[1] or ""
     return df
 
 
@@ -83,31 +71,20 @@ def leer_pruebas(archivo, nombre_archivo=None):
     for w in hojas:
         n = int(w.title.split()[1])
         nombre, f = info.get(n, ("", ""))
-        # Orden de confianza: columna "Fuente" del Excel, nombre del archivo y, en los viejos, el nombre de la prueba.
-        fuente = ("bateria" if "bater" in f or "bateria" in arch else "paneles" if "panel" in f or "paneles" in arch
-                  else "paneles" if "Generaci" in nombre else "bateria")
+        # Las pruebas de consumo son de noche y van con la batería, aunque en la página quedara "paneles".
+        fuente = ("bateria" if "consumo" in nombre.lower() or "bater" in f or "bateria" in arch
+                  else "paneles" if "panel" in f or "paneles" in arch or "Generaci" in nombre else "bateria")
         df = _tabla(w)
         df["h"] = df.t / 3600
+        df["nombre"] = nombre
         yield n, nombre, fuente, df
 
 
 def cargar(carpeta=DATOS):
-    tablas = []
-    for f in glob.glob(str(Path(carpeta) / "lote2" / "*.xlsx")):
-        df = _leer(f)
-        nom = Path(f).name
-        df["prueba"] = int(re.search(r"prueba(\d+)", nom).group(1))
-        # Los archivos más viejos no llevan la fuente en el nombre: se deduce del nombre de la prueba.
-        df["fuente"] = "bateria" if "bateria" in nom else "paneles" if "paneles" in nom else (
-            "paneles" if "Generaci" in df.nombre.iat[0] else "bateria")
-        tablas.append(df)
-    for p, (fuente, t_max) in LOTE1.items():
-        df = _leer(glob.glob(str(Path(carpeta) / f"central_pv_prueba{p}_*.xlsx"))[0])
-        df["prueba"], df["fuente"] = p, fuente
-        tablas.append(df[df.t < t_max])
-    d = pd.concat(tablas, ignore_index=True)
-    d["h"] = d.t / 3600
-    return d.sort_values(["prueba", "t"]).reset_index(drop=True)
+    """Todas las pruebas de los Excel de la carpeta en una sola tabla."""
+    tablas = [df.assign(prueba=n, fuente=fuente) for f in sorted(Path(carpeta).rglob("*.xlsx"))
+              for n, _, fuente, df in leer_pruebas(f)]
+    return pd.concat(tablas, ignore_index=True).sort_values(["prueba", "t"]).reset_index(drop=True)
 
 
 # --- Limpieza ---

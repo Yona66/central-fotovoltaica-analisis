@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from analizar_prueba import comparar, estadistica
-from fisica import DATOS, LOTE1, RAIZ, caidas, energia, filtrar, leer_pruebas, limpiar, potencia
+from fisica import DATOS, RAIZ, caidas, energia, filtrar, leer_pruebas, limpiar, potencia
 
 MAX_PUNTOS = 1500   # por serie: suficiente para la gráfica y mantiene el HTML liviano
 SALIDA = RAIZ / "tablero.html"
@@ -72,9 +72,6 @@ def main():
     for f in archivos:
         try:
             for n, nombre, fuente, d in leer_pruebas(f):
-                if n in LOTE1 and f.name.startswith(f"central_pv_prueba{n}_2026-10-22"):  # recorte del notebook: luego el sensor se movió
-                    fuente, t_max = LOTE1[n]
-                    d = d[d.t < t_max]
                 p = ficha(n, nombre, fuente, f.name, d)
                 if p:
                     pruebas.append(p)

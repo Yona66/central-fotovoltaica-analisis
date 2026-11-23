@@ -36,7 +36,10 @@ Requiere Python 3.10 o superior.
   - **salida**: después del elevador, justo antes de la carga.
 - El ESP32 publica una página web. Desde el celular se crea una *prueba*, se graba una
   lectura cada pocos segundos y al final se descarga un **Excel** con todas las lecturas.
-- Cada Excel trae una hoja por prueba. Esos archivos están en `datos/`.
+- Cada Excel trae una hoja por prueba. Esos archivos están en `datos/`: 8 pruebas del 19 al 23 de noviembre,
+  4 de día con los paneles y 4 de noche con la batería.
+- Las pruebas de **consumo** se hacen de noche con la batería: el análisis las toma así aunque en la página
+  hayan quedado como "paneles" (pasó en P2 y P4).
 
 ## 3. Qué hace el análisis (requerimientos 1, 2 y 3)
 
@@ -46,7 +49,7 @@ Requiere Python 3.10 o superior.
    - Calcula potencia (P = V · I) y energía (área bajo la potencia en el tiempo).
 2. **Análisis y eficiencia**
    - Energía que entra y energía que sale; eficiencia del elevador y pérdidas.
-   - Descarga de la batería y autonomía estimada.
+   - Descarga de la batería, modelo de la curva y autonomía (calculada contra medida).
    - Teórico contra real, con % de error.
 3. **Visualización y validación**
    - Gráficas, estabilidad de la salida de 5 V y caídas bruscas de voltaje.
