@@ -31,7 +31,7 @@ Materiales principales: seis paneles de 5 V, diodo Schottky 1N5819, módulo TP40
 | Documento | Contenido |
 | --- | --- |
 | [Resumen ejecutivo](docs/RESUMEN_EJECUTIVO.md) | Solución, resultados y limitaciones |
-| [Informe técnico](docs/INFORME_TECNICO.md) | Electrónica, adquisición, pruebas y análisis |
+| [Informe técnico en Word con formato IEEE](docs/INFORME_TECNICO_IEEE.docx) · [Versión Markdown](docs/INFORME_TECNICO.md) | Electrónica, adquisición, pruebas y análisis |
 | [Análisis en Python](docs/ANALISIS_PYTHON.md) | Métodos y reproducción |
 | [Diccionario de datos](docs/DICCIONARIO_DATOS.md) | Excel del ESP32 y tablas generadas |
 | [Estructura](docs/ESTRUCTURA.md) | Organización actual y propuesta |
