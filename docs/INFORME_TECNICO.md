@@ -95,6 +95,16 @@ C2 aporta contexto de consumo y se excluye del cálculo de eficiencia por sus 13
 
 La potencia recalculada coincide a dos decimales porcentuales con la columna de potencia exportada. La energía de entrada difiere **0,68 %** en promedio respecto al acumulado del ESP32. El error medio de la salida frente a la consigna de 5 V es **0,90 %** en las descargas elegibles. Las tres métricas usan los registros de la propia maqueta y sirven para comprobar cálculos y regulación. **La comparación experimental INA260–multímetro quedó pendiente.** [Comparación](../graficas/r3_teorico_vs_real.png) · [Resultados](../resultados.json)
 
+### Cambios respecto a la exposición anterior
+
+| Métrica | Versión anterior | Análisis vigente |
+| --- | --- | --- |
+| Eficiencia del elevador | 83–87 % típico en varias campañas, con cociente de energías y la excepción B22 aparte | 86,40 % medio por potencia, con C4, C6 y C8 |
+| Diferencia con la energía exportada | 0,53 % en lotes B y C | 0,68 % en el lote C |
+| Autonomía | 8,6 % de error, usando una descarga de referencia y ensayos de dos lotes | 32,3 % de error con tres tramos continuos de C, cada uno estimado con la energía media de los otros dos |
+
+Los cambios en el conjunto de pruebas y en el método impiden atribuir estas diferencias a una mejora o un deterioro físico del circuito. [Resultados de la versión anterior](https://github.com/Yona66/central-fotovoltaica-analisis/blob/1b1af31edb62f4880397a317167235cb2cbbb6b6/resultados.json)
+
 ## 8. Incertidumbre y confiabilidad
 
 A 25 °C, se estima el límite lineal como `offset / lectura + ganancia`. Los valores típicos describen la especificación típica del fabricante. Este presupuesto excluye cableado, calibración, resolución de guardado y condiciones fuera de la especificación. [Ficha INA260, § 7.5](https://www.ti.com/lit/ds/symlink/ina260.pdf)
@@ -107,7 +117,9 @@ A 25 °C, se estima el límite lineal como `offset / lectura + ganancia`. Los va
 | Tensión | 1,25 / 7,5 mV | 0,02 / 0,10 % | 5 V → 0,045 / 0,25 % |
 | Tensión | 1,25 / 7,5 mV | 0,02 / 0,10 % | 3,9 V → 0,052 / 0,292 % |
 
-El offset fijo pesa más cuando la corriente es baja. La temperatura puede cambiar el offset y la ganancia. Para validar, medir 8 a 10 puntos con un multímetro de referencia en cada nodo, cubrir cargas bajas y altas, repetir mediciones y ajustar `referencia = a · sensor + b`. Registrar resolución, temperatura, repetibilidad y residuales antes de aplicar la corrección. Los valores históricos de incertidumbre de rendimiento y las causas propuestas para cortes o saltos requieren mediciones independientes.
+El offset fijo pesa más cuando la corriente es baja. La temperatura puede cambiar el offset y la ganancia. Como ejemplo para C8, se evalúa `offset / lectura + ganancia` en las medias de tensión y corriente de ambos puntos. La suma de los cuatro efectos relativos, multiplicada por la eficiencia de C8, da **2,72 puntos porcentuales usando especificaciones típicas** y **11,16 puntos usando máximos**. Es una estimación lineal conservadora de primer orden para ese punto de operación. Su verificación requiere un instrumento patrón. [Medias de C8](../tablas/resumen_pruebas.csv)
+
+Para validar, medir 8 a 10 puntos con un multímetro de referencia en cada nodo, cubrir cargas bajas y altas, repetir mediciones y ajustar `referencia = a · sensor + b`. Registrar resolución, temperatura, repetibilidad y residuales antes de aplicar la corrección. Las causas propuestas para cortes o saltos requieren mediciones independientes.
 
 ## 9. Maqueta
 
