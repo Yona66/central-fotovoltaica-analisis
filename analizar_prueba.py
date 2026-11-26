@@ -13,9 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from fisica import RAIZ, caidas, con_huecos, energia, error_pct, filtrar, leer_pruebas, limpiar, ohm_i, potencia
+from fisica import RAIZ, caidas, eficiencia, con_huecos, energia, error_pct, filtrar, leer_pruebas, limpiar, ohm_i, potencia
 
-ETA_HOJA = 97.0     # máximo del MT3608 según su hoja de datos
 V_CONSIGNA = 5.0    # salida ajustada del MT3608
 SALIDA = RAIZ / "fichas"
 
@@ -37,9 +36,6 @@ def comparar(d, ok, fuente, r_nom):
     if r_nom:
         fila("Corriente salida", ohm_i(ok.Vs, r_nom).mean(), ok.Is.mean(), "mA", f"Ohm I = V/R con R = {r_nom:g} Ω")
         fila("Resistencia carga", r_nom, (ok.Vs / (ok.Is / 1000)).median(), "Ω", "R = V/I medida contra la nominal")
-    if fuente == "bateria":
-        fila("Eficiencia MT3608", ETA_HOJA, 100 * energia(ok.t, potencia(ok.Vs, ok.Is))[-1]
-             / energia(ok.t, potencia(ok.V, ok.I))[-1], "%", "E salida / E entrada contra la hoja de datos")
     return pd.DataFrame(filas)
 
 
@@ -60,8 +56,8 @@ def graficar(d, titulo, archivo):
             s = d[["t", col]].dropna()
             if s.empty:
                 continue
-            ax.plot(*con_huecos(s.t / 3600, s[col]), color=color, alpha=.25, lw=.8)
-            ax.plot(*con_huecos(s.t / 3600, filtrar(s[col], s.t)), color=color, lw=1.8, label=etq)
+            ax.plot(*con_huecos(s.t / 3600, s[col], hueco=60/3600), color=color, alpha=.25, lw=.8)
+            ax.plot(*con_huecos(s.t / 3600, filtrar(s[col], s.t), hueco=60/3600), color=color, lw=1.8, label=etq)
         ax.set_ylabel(nombre)
         ax.grid(alpha=.3)
         ax.legend(loc="best")
@@ -104,6 +100,8 @@ def analizar(archivo, r_nom=None, forzar=None):
         cai = caidas(ok.t, ok.Vs, ok.Is)
         graficar(d, titulo, carpeta / "graficas.png")
         ficha(carpeta / "ficha.xlsx", comp, est, cai, ok)
+        if fuente == "bateria" and len(ok) >= 100:
+            print(f"  Eficiencia por potencia: {eficiencia(potencia(ok.Vs, ok.Is).mean(), potencia(ok.V, ok.I).mean()):.2f} %")
         print(f"\n{titulo}\n  {len(d)} filas, {len(d) - len(ok)} descartadas, {d.h.max():.2f} h, {len(cai)} caídas bruscas")
         print(comp.drop(columns="Cómo se obtiene").to_string(index=False))
         indice.append({"Ficha": clave, "Prueba": n, "Nombre": nombre, "Fuente": fuente,

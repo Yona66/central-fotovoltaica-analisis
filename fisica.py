@@ -8,6 +8,7 @@ import pandas as pd
 
 RAIZ = Path(__file__).resolve().parent
 DATOS = RAIZ / "datos"
+LOTE_VIGENTE = DATOS / "lote3"
 COLS = ["n", "fecha", "t", "V", "I", "P_esp", "E_esp", "Vs", "Is", "Ps_esp", "Es_esp"]
 
 
@@ -89,7 +90,7 @@ LOTES = {"lote1": "A", "lote2": "B", "lote3": "C"}
 AJUSTES = {"A1": "paneles", "A8": ("bateria", 20000), "A9": ("carga", 1200), "A10": "paneles"}
 
 
-def todas_las_pruebas(carpeta=DATOS):
+def todas_las_pruebas(carpeta=LOTE_VIGENTE):
     """Cada prueba de datos/ como (id, nombre, fuente, archivo, DataFrame), con los ajustes del lote A."""
     for f in sorted(Path(carpeta).rglob("*.xlsx"), key=lambda f: (f.parent.name, f.name)):
         letra = LOTES.get(f.parent.name, "P")
@@ -108,7 +109,7 @@ def orden(pid):
     return pid[0], int(pid[1:])
 
 
-def cargar(carpeta=DATOS):
+def cargar(carpeta=LOTE_VIGENTE):
     """Todas las pruebas en una sola tabla."""
     tablas = [df.assign(prueba=pid, fuente=fuente) for pid, _, fuente, _, df in todas_las_pruebas(carpeta)]
     d = pd.concat(tablas, ignore_index=True)
@@ -120,7 +121,7 @@ def cargar(carpeta=DATOS):
 
 def limpiar(d, i_min=1.0):
     """Quita filas sin dato, con el sistema apagado o con corriente invertida."""
-    ok = d[["V", "I", "Vs", "Is"]].notna().all(axis=1) & (d.I > i_min) & (d.Is > i_min)
+    ok = d[["V", "I", "Vs", "Is"]].notna().all(axis=1) & (d.V > 0.05) & (d.Vs > 0.05) & (d.I > i_min) & (d.Is > i_min)
     return d[ok].copy()
 
 

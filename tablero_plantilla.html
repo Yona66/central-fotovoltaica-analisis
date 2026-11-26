@@ -443,17 +443,16 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
       <div class="bento">
         <div class="card a-anillo revela">
           <div class="anillo-caja">
-            <h3>Rendimiento de la prueba</h3>
+            <h3>Eficiencia del MT3608</h3>
             <div class="anillo">
               <svg viewBox="0 0 160 160" aria-hidden="true">
                 <defs><linearGradient id="g-anillo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--brand-2)"/><stop offset="1" style="stop-color:var(--brand)"/></linearGradient></defs>
                 <circle class="pista" cx="80" cy="80" r="64"/>
                 <circle class="valor" id="anillo-v" cx="80" cy="80" r="64" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 80 80)"/>
-                <line class="marca97" id="marca97" x1="0" y1="0" x2="0" y2="0"/>
               </svg>
               <div class="centro"><b><span id="anillo-n">0</span><small>%</small></b><span>salida / entrada</span></div>
             </div>
-            <p class="anillo-nota">La rayita marca el 97 %, el máximo del MT3608 según su hoja de datos.</p>
+            <p class="anillo-nota">Potencia media de salida / entrada. Se estima con batería y al menos 100 lecturas válidas.</p>
           </div>
         </div>
         <div class="a-kpis" id="kpis"></div>
@@ -544,7 +543,7 @@ footer { padding: 56px 0 40px; text-align: center; font-size: 13px; color: var(-
     <div class="formulas">
       <div class="card formula inclina revela"><h3>Potencia</h3><div class="ec">P = V · I</div><p>En cada lectura, con la tensión y la corriente del INA260.</p></div>
       <div class="card formula inclina revela" style="--d:100ms"><h3>Energía</h3><div class="ec">E = ∫ P dt</div><p>Área bajo la potencia por trapecios; los huecos de más de 60 s no suman.</p></div>
-      <div class="card formula inclina revela" style="--d:200ms"><h3>Rendimiento</h3><div class="ec">η = E<sub>sal</sub> / E<sub>ent</sub></div><p>Qué parte de la energía que entra llega a la salida de 5 V.</p></div>
+      <div class="card formula inclina revela" style="--d:200ms"><h3>Rendimiento</h3><div class="ec">η = P<sub>sal</sub> / P<sub>ent</sub> × 100</div><p>Cociente de las potencias medias del convertidor durante descargas elegibles.</p></div>
       <div class="card formula inclina revela"><h3>Error</h3><div class="ec">|real − teórico| / |teórico|</div><p>Por cien. Compara el cálculo de Python, la consigna de 5 V y la hoja de datos.</p></div>
       <div class="card formula inclina revela" style="--d:100ms"><h3>Filtro de ruido</h3><div class="ec">mediana₅ → media₆₀ ₛ</div><p>La mediana quita picos sueltos; la media móvil suaviza sin mover los escalones.</p></div>
       <div class="card formula inclina revela" style="--d:200ms"><h3>Caídas de tensión</h3><div class="ec">|ΔV| &gt; 8 · MAD</div><p>Saltos entre lecturas mucho mayores que la variación normal; R = ΔV / ΔI.</p></div>
@@ -574,7 +573,7 @@ const ico = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICO[n]
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Punto decimal y espacio de miles, igual que la presentación.
 const num = (x, d = 1) => x == null || !isFinite(x) ? "—" : (+x).toFixed(d).replace(/^(-?\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, " "));
-const rel = p => 100 * p.e_sal / p.e_ent;
+const rel = p => p.eficiencia;
 const css = n => getComputedStyle(raiz).getPropertyValue(n).trim();
 const el = (tag, attrs, padre) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (padre) padre.appendChild(e); return e; };
 const temaActual = () => raiz.dataset.theme || (oscuroSO.matches ? "dark" : "light");
@@ -626,16 +625,16 @@ function contar(nodo, fin, dec) {
   requestAnimationFrame(paso);
 }
 function portada() {
-  const bat = D.filter(p => p.fuente === "bateria"), base = bat.length ? bat : D;
+  const bat = D.filter(p => rel(p) != null);
   const cifras = [
     [D.length, 0, "", "pruebas analizadas"],
     [D.reduce((s, p) => s + p.duracion, 0), 1, "h", "de registro"],
     [D.reduce((s, p) => s + p.e_ent, 0) / 1000, 2, "Wh", "de energía medida"],
-    [base.reduce((s, p) => s + rel(p), 0) / base.length, 1, "%", bat.length ? "rinde el MT3608 con batería" : "rendimiento medio"],
+    [bat.length ? bat.reduce((s, p) => s + rel(p), 0) / bat.length : null, 1, "%", "eficiencia media del MT3608"],
   ];
   $("#cifras").innerHTML = cifras.map(([, , u, et]) => `<div class="cifra inclina"><b><span class="tab">0</span><small>${u}</small></b><span>${et}</span></div>`).join("");
-  $$("#cifras .tab").forEach((n, i) => contar(n, cifras[i][0], cifras[i][1]));
-  $("#pie").innerHTML = `Generado por <b>tablero.py</b> el ${esc(DATA.generado)} · Datos: ESP32 + sensores INA260 · Análisis: Python, Pandas y NumPy`;
+  $$("#cifras .tab").forEach((n, i) => cifras[i][0] == null ? (n.textContent = "—") : contar(n, cifras[i][0], cifras[i][1]));
+  $("#pie").innerHTML = `Generado por <b>tablero.py</b> el ${esc(DATA.generado)} · Lote vigente C · ESP32 + sensores INA260 · Análisis: Python, Pandas y NumPy`;
 }
 
 // --- Selección de prueba ---
@@ -688,9 +687,8 @@ function detalle() {
   $$("#kpis .kpi").forEach((n, i) => { n.classList.add("gira"); n.style.setProperty("--d", i * 50 + "ms"); });
   const an = $(".anillo"); an.classList.remove("gira"); void an.offsetWidth; an.classList.add("gira");
   $("#anillo-v").setAttribute("stroke-dashoffset", 100 - Math.max(0, Math.min(100, r)));
-  contar($("#anillo-n"), r, 1);
-  const a = (-90 + 0.97 * 360) * Math.PI / 180;
-  Object.entries({ x1: 80 + 54 * Math.cos(a), y1: 80 + 54 * Math.sin(a), x2: 80 + 74 * Math.cos(a), y2: 80 + 74 * Math.sin(a) }).forEach(([k, v]) => $("#marca97").setAttribute(k, v.toFixed(1)));
+  if (r == null) $("#anillo-n").textContent = "—";
+  else contar($("#anillo-n"), r, 1);
   errores(p); rangos(p); caidas(p); flujo(); dibujar();
 }
 function errores(p) {
@@ -918,7 +916,7 @@ const COLS = [
   ["fuente", "Fuente", "", p => `<span class="ficha-f" style="--c:var(--${p.fuente})">${ico(p.fuente)}${NOMBRE[p.fuente]}</span>`, 0],
   ["duracion", "Duración", "h", p => num(p.duracion, 2), 1], ["validas", "Lecturas", "válidas", p => num(p.validas, 0), 1],
   ["e_ent", "E entrada", "mWh", p => num(p.e_ent, 1), 1], ["e_sal", "E salida", "mWh", p => num(p.e_sal, 1), 1],
-  ["rel", "Salida / entrada", "%", p => num(rel(p), 1), 1], ["p_sal", "P salida media", "mW", p => num(p.p_sal, 1), 1],
+  ["rel", "Eficiencia MT3608", "%", p => num(rel(p), 1), 1], ["p_sal", "P salida media", "mW", p => num(p.p_sal, 1), 1],
   ["v_sal", "V salida media", "V", p => num(p.v_sal, 3), 1], ["sigma_vs", "σ V salida", "mV", p => num(p.sigma_vs, 2), 1],
 ];
 const valor = (p, k) => k === "rel" ? rel(p) : p[k];
@@ -949,9 +947,10 @@ function barras() {
 }
 $("#barras").addEventListener("click", e => { const b = e.target.closest(".bh"); if (b) seleccionar(+b.dataset.i, true); });
 function dispersion() {
-  const caja = $("#disp"), gd = $("#globo-d"), v = visibles(), W = caja.clientWidth || 500, H = W < 560 ? 280 : 330, m = { l: 50, r: 16, t: 14, b: 42 };
+  const caja = $("#disp"), gd = $("#globo-d"), v = visibles().filter(({ p }) => rel(p) != null), W = caja.clientWidth || 500, H = W < 560 ? 280 : 330, m = { l: 50, r: 16, t: 14, b: 42 };
   caja.querySelector("svg")?.remove();
-  if (!v.length) return;
+  caja.querySelector(".disp-vacia")?.remove();
+  if (!v.length) { caja.insertAdjacentHTML("afterbegin", '<p class="disp-vacia nota">Sin descargas elegibles en este filtro.</p>'); return; }
   const xs = v.map(x => Math.log10(Math.max(x.p.p_sal, 0.1))), rs = v.map(x => rel(x.p));
   const x0 = Math.floor(Math.min(...xs)), x1 = Math.max(Math.ceil(Math.max(...xs)), x0 + 1), y0 = Math.floor(Math.min(...rs) / 5) * 5 - 5, y1 = 100;
   const X = l => m.l + (l - x0) / (x1 - x0) * (W - m.l - m.r), Y = r => m.t + (y1 - r) / (y1 - y0) * (H - m.t - m.b), maxE = Math.max(...v.map(x => x.p.e_ent));
@@ -961,8 +960,6 @@ function dispersion() {
   for (let r = y0; r <= y1; r += 5) { el("line", { x1: m.l, x2: W - m.r, y1: Y(r), y2: Y(r) }, eje); el("text", { x: m.l - 8, y: Y(r) + 4, "text-anchor": "end" }, eje).textContent = r + " %"; }
   for (let l = x0; l <= x1; l++) { el("line", { x1: X(l), x2: X(l), y1: m.t, y2: H - m.b }, eje); el("text", { x: X(l), y: H - m.b + 18, "text-anchor": "middle" }, eje).textContent = num(10 ** l, 0) + " mW"; }
   el("text", { x: (m.l + W - m.r) / 2, y: H - 4, "text-anchor": "middle", class: "titulo-eje" }, s).textContent = "Potencia media de salida (escala log)";
-  el("line", { x1: m.l, x2: W - m.r, y1: Y(97), y2: Y(97), stroke: "var(--brand)", "stroke-dasharray": "5 5", "stroke-width": 1.5 }, s);
-  el("text", { x: W - m.r - 4, y: Y(97) - 6, "text-anchor": "end", style: "fill:var(--brand);font:600 12px var(--ft)" }, s).textContent = "97 %: máximo del MT3608";
   v.sort((a, b) => b.p.e_ent - a.p.e_ent).forEach(({ p, i }) => {
     const c = el("circle", { class: "pt", cx: X(Math.log10(Math.max(p.p_sal, 0.1))), cy: Y(rel(p)), r: 6 + 9 * Math.sqrt(p.e_ent / maxE), style: `fill:var(--${p.fuente});fill-opacity:.85`, tabindex: 0, role: "button", "aria-label": `${p.n}: ${num(rel(p))} % con ${num(p.p_sal)} mW` }, s);
     const ver = () => {

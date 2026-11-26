@@ -1,100 +1,38 @@
-# Central fotovoltaica: análisis de datos
+# Central fotovoltaica de baja potencia
 
-Programa en Python que lee las medidas de una maqueta de central solar, las limpia,
-calcula la física (potencia, energía, eficiencia, errores) y las muestra en un tablero web.
+Una maqueta registra tensión y corriente en dos puntos del circuito. El ESP32 sirve una página local y exporta los ensayos a Excel. Python calcula potencia, energía, eficiencia del elevador y autonomía a partir de las lecturas.
 
-## Uso rápido
+```text
+6 paneles de 5 V en paralelo → diodo 1N5819 → TP4056 → 2 celdas 18650 → MT3608 → carga
+                                      INA260 0x40 en la entrada elegida     INA260 0x44 en la salida
+```
 
-- **Ver resultados:** abrir `tablero.html` con doble clic. Funciona sin internet.
-- **Sumar una prueba nueva:** copiar su Excel en `datos/lote3/` (o una carpeta `loteN/` nueva) y regenerar el tablero:
+## Resultados del lote vigente
+
+El análisis usa los ocho Excel registrados del 19 al 23 de noviembre de 2026. Los lotes A y B se conservan como archivo histórico. Las ocho pruebas suman 33 682 lecturas, de las que 33 564 pasan el filtro para comparar puntos de medida. En las tres descargas elegibles, el MT3608 obtuvo **86,40 % de eficiencia media**, calculada con las potencias medias de salida y entrada. [Tabla de resultados](tablas/resumen_pruebas.csv)
+
+## Cómo reproducir el análisis
+
+1. Abrir `tablero.html` desde el repositorio descargado para explorar las ocho pruebas sin internet.
+2. Instalar Python 3.10 o superior y ejecutar los comandos desde la raíz del repositorio.
 
 ```bash
-pip install -r requirements.txt   # una sola vez
-python tablero.py
+python -m pip install -r requirements.txt
+python analisis_vigente.py
+python tablero.py --sin-abrir
 ```
 
-Requiere Python 3.10 o superior.
+También se puede abrir `corte3.ipynb` en Jupyter y ejecutar todas sus celdas. El análisis actualiza `graficas/`, `tablas/` y `resultados.json`. La opción `python analizar_prueba.py archivo.xlsx` genera una ficha individual.
 
-## 1. La maqueta
+## Montaje y documentación
 
-```
-6 paneles 5 V (paralelo) → diodo 1N5819 → cargador TP4056 → 2 baterías 18650 → elevador MT3608 (5 V) → carga (LEDs)
-```
+Materiales principales: seis paneles de 5 V, diodo Schottky 1N5819, módulo TP4056, dos celdas 18650 con portapilas, elevador MT3608, dos INA260, ESP32 DevKit, carga y elementos de protección. La corriente nominal de los paneles, la capacidad de las celdas y la protección instalada requieren confirmación. Consultar el esquema y las verificaciones del [informe técnico](docs/INFORME_TECNICO.md) antes de reproducir el cableado.
 
-| Parte | Qué hace |
-|---|---|
-| Paneles | Convierten la luz del sol en electricidad. |
-| Diodo | Deja pasar la corriente en un solo sentido: la batería no se descarga hacia los paneles. |
-| TP4056 | Carga las baterías sin dañarlas. |
-| Baterías 18650 | Guardan la energía (unos 3.7 V). |
-| MT3608 | Sube el voltaje de la batería a 5 V fijos para la carga. |
-
-## 2. Cómo se mide
-
-- Un **ESP32** lee dos sensores **INA260**, que miden voltaje y corriente:
-  - **entrada**: en los paneles o en la batería, según la prueba;
-  - **salida**: después del elevador, justo antes de la carga.
-- El ESP32 publica una página web. Desde el celular se crea una *prueba*, se graba una
-  lectura cada pocos segundos y al final se descarga un **Excel** con todas las lecturas.
-- Cada Excel trae una hoja por prueba. Se usan **todos**, en tres carpetas de `datos/`:
-
-| Lote | Carpeta | Fechas | Pruebas |
-|---|---|---|---|
-| A | `lote1/` | 14–19 oct | A1–A10 |
-| B | `lote2/` | 30 oct–4 nov | B1, B3–B6, B19, B20, B22–B24 |
-| C | `lote3/` | 19–23 nov (6 paneles) | C1–C8 |
-
-- La letra evita números repetidos (hay una P8 en el lote A y otra en el C).
-- Las pruebas de **consumo** se hacen de noche con la batería: el análisis las toma así aunque en la página
-  hayan quedado como "paneles" (pasó en C2 y C4).
-- Lote A: tras A8 el sensor de entrada pasó al lado de los paneles; A8 se corta ahí y A9 (carga) a los 20 min.
-  A4 y A5 no tienen filas válidas (el sensor de salida no marcaba).
-
-## 3. Qué hace el análisis (requerimientos 1, 2 y 3)
-
-1. **Procesamiento y modelo físico**
-   - Importa los Excel a una sola tabla.
-   - Quita lecturas imposibles (picos a 0 V por falsos contactos) y suaviza el ruido.
-   - Calcula potencia (P = V · I) y energía (área bajo la potencia en el tiempo).
-2. **Análisis y eficiencia**
-   - Energía que entra y energía que sale; eficiencia del elevador y pérdidas.
-   - Descarga de la batería, modelo de la curva y autonomía (calculada contra medida).
-   - Teórico contra real, con % de error.
-3. **Visualización y validación**
-   - Gráficas, estabilidad de la salida de 5 V y caídas bruscas de voltaje.
-
-## 4. Archivos
-
-| Archivo | Qué es |
-|---|---|
-| `fisica.py` | El núcleo: lee los Excel, limpia y calcula Ohm, potencia, energía, eficiencia, error y caídas. |
-| `analizar_prueba.py` | Analiza un solo Excel y guarda una ficha: `python analizar_prueba.py archivo.xlsx [--r 220]` |
-| `corte3.ipynb` | Notebook con todo el análisis paso a paso, ya ejecutado. |
-| `tablero.py` + `tablero_plantilla.html` | Leen todos los Excel de `datos/` y escriben `tablero.html`. |
-| `tablero.html` | El tablero listo para abrir. |
-| `datos/` | Excel de todas las pruebas, por lote. |
-| `graficas/`, `tablas/`, `resultados.json` | Salidas del notebook. |
-
-## 5. El tablero (`tablero.html`)
-
-- **Inicio:** cifras generales de todas las pruebas.
-- **01 Explorar:** se elige una prueba y se ven:
-  - voltaje, corriente, potencia y energía (lectura con el puntero; zoom con Ctrl + rueda);
-  - teórico contra real, estabilidad, flujo de energía y caídas de voltaje.
-- **02 Comparar:** todas las pruebas juntas, en gráfica y en una tabla ordenable que se exporta a CSV.
-- **03 Método:** las fórmulas usadas.
-- Tema claro y oscuro. Sirve en computador y en celular.
-
-## 6. Notebook
-
-Abrir `corte3.ipynb` (Jupyter o VS Code) y usar *Restart & Run All*. Regenera
-`graficas/`, `tablas/` y `resultados.json` con los mismos números.
-
-## 7. Métodos
-
-- **Potencia:** P = V · I en cada lectura.
-- **Energía:** área bajo la potencia por trapecios; los huecos de más de 60 s no suman.
-- **Eficiencia del MT3608:** E salida / E entrada (solo con la batería como fuente).
-- **Error:** |real − teórico| / |teórico| · 100.
-- **Ruido:** mediana móvil de 5 muestras y media móvil de 60 s, por tramos.
-- **Caídas de voltaje:** saltos entre muestras mayores que 8 desviaciones robustas (MAD).
+| Documento | Contenido |
+| --- | --- |
+| [Resumen ejecutivo](docs/RESUMEN_EJECUTIVO.md) | Solución, resultados y limitaciones |
+| [Informe técnico](docs/INFORME_TECNICO.md) | Electrónica, adquisición, pruebas y análisis |
+| [Análisis en Python](docs/ANALISIS_PYTHON.md) | Métodos y reproducción |
+| [Diccionario de datos](docs/DICCIONARIO_DATOS.md) | Excel del ESP32 y tablas generadas |
+| [Estructura](docs/ESTRUCTURA.md) | Organización actual y propuesta |
+| [Registro de cambios](CHANGELOG.md) | Evolución y decisiones |

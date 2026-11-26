@@ -1,7 +1,7 @@
 """Genera tablero.html con las gráficas y la analítica de todas las pruebas; se abre con doble clic.
 
 Uso: python tablero.py [otros.xlsx ...] [--sin-abrir]
-Lee todos los Excel de datos/loteN/ (para sumar una prueba nueva basta con copiarla ahí).
+Lee datos/lote3/ y los Excel adicionales indicados en la línea de comandos.
 """
 import json
 import math
@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from analizar_prueba import comparar, estadistica
+from analisis_vigente import MIN_RENDIMIENTO
 from fisica import RAIZ, caidas, energia, filtrar, leer_pruebas, limpiar, orden, potencia, todas_las_pruebas
 
 MAX_PUNTOS = 1500   # por serie: suficiente para la gráfica y mantiene el HTML liviano
@@ -57,6 +58,7 @@ def ficha(n, nombre, fuente, archivo, d):
         "duracion": float(d.h.max()), "lecturas": len(d), "validas": len(ok),
         "e_ent": e_ent, "e_sal": e_sal, "v_sal": float(ok.Vs.mean()), "sigma_vs": float(1000 * np.std(ok.Vs)),
         "p_ent": float(ok.P.mean()), "p_sal": float(ok.Ps.mean()),
+        "eficiencia": float(100 * ok.Ps.mean() / ok.P.mean()) if fuente == "bateria" and len(ok) >= MIN_RENDIMIENTO else None,
         "spark": lista(filtrar(ok.V, ok.t)[:: max(1, len(ok) // 48)], 3),  # miniatura para la tarjeta
         "comp": comp.to_dict("records"),
         "est": [{"Magnitud": k, **v} for k, v in est.to_dict("index").items()],
